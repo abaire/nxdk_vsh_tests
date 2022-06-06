@@ -1,0 +1,6 @@
+[submodule "third_party/nxdk"]
+	path = third_party/nxdk
+	url = https://github.com/abaire/nxdk.git
+[submodule "third_party/printf"]
+	path = third_party/printf
+	url = https://github.com/mpaland/printf.git

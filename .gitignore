@@ -1,0 +1,15 @@
+*.cpp.d
+*.c.d
+*.obj
+*.iso
+*.lib
+*.exe
+*.xbe
+*.pdb
+*.inl
+*.vshinc
+
+.DS_Store
+.vscode/
+.idea/
+bin/
