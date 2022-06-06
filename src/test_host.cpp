@@ -5,24 +5,41 @@
 #include <cmath>
 // clang format on
 
+#include <fpng/src/fpng.h>
+
 #include <strings.h>
 #include <windows.h>
-#include <xboxkrnl/xboxkrnl.h>
 
 #include <algorithm>
 #include <utility>
 
 #include "debug_output.h"
-#include "math3d.h"
 #include "nxdk_ext.h"
 #include "pbkit_ext.h"
 #include "shaders/vertex_shader_program.h"
+
+// clang format off
+static const uint32_t kClearStateShader[] = {
+#include "shaders/clear_state.vshinc"
+};
+
+static const uint32_t kComputeFooter[] = {
+#include "shaders/compute_footer.vshinc"
+};
+// clang format on
 
 #define TO_BGRA(float_vals)                                                                      \
   (((uint32_t)((float_vals)[3] * 255.0f) << 24) + ((uint32_t)((float_vals)[0] * 255.0f) << 16) + \
    ((uint32_t)((float_vals)[1] * 255.0f) << 8) + ((uint32_t)((float_vals)[2] * 255.0f)))
 
 #define MAX_FILE_PATH_SIZE 248
+
+// From pbkit.c, DMA_A is set to channel 3 by default
+// NV097_SET_CONTEXT_DMA_A == NV20_TCL_PRIMITIVE_3D_SET_OBJECT1
+static constexpr uint32_t kDefaultDMAChannelA = 3;
+// From pbkit.c, DMA_COLOR is set to channel 9 by default.
+// NV097_SET_CONTEXT_DMA_COLOR == NV20_TCL_PRIMITIVE_3D_SET_OBJECT3
+static constexpr uint32_t kDefaultDMAColorChannel = 9;
 
 static void SetSurfaceFormat() {
   uint32_t value = SET_MASK(NV097_SET_SURFACE_FORMAT_COLOR, NV097_SET_SURFACE_FORMAT_COLOR_LE_A8R8G8B8) |
@@ -108,7 +125,20 @@ static void SetSurfaceFormat() {
 
 TestHost::TestHost() {
   SetSurfaceFormat();
+
+  uint32_t buffer_size = kFramebufferWidth * kFramebufferHeight * 4;
+  compute_buffer_ = static_cast<uint8_t *>(
+      MmAllocateContiguousMemoryEx(buffer_size, 0, MAXRAM, 0, PAGE_WRITECOMBINE | PAGE_READWRITE));
+  ASSERT(compute_buffer_ && "Failed to allocate compute buffer.");
 }
+
+TestHost::~TestHost() {
+  delete[] shader_code_;
+  if (compute_buffer_) {
+    MmFreeContiguousMemory(compute_buffer_);
+  }
+}
+
 
 void TestHost::ClearDepthStencilRegion(uint32_t depth_value, uint8_t stencil_value, uint32_t left, uint32_t top,
                                        uint32_t width, uint32_t height) const {
@@ -132,28 +162,168 @@ void TestHost::ClearColorRegion(uint32_t argb, uint32_t left, uint32_t top, uint
   pb_fill(static_cast<int>(left), static_cast<int>(top), static_cast<int>(width), static_cast<int>(height), argb);
 }
 
-void TestHost::EraseText() { pb_erase_text_screen(); }
-
 void TestHost::Clear(uint32_t argb, uint32_t depth_value, uint8_t stencil_value) const {
   ClearColorRegion(argb);
   ClearDepthStencilRegion(depth_value, stencil_value);
-  EraseText();
+  pb_erase_text_screen();
 }
 
-void TestHost::PrepareDraw(uint32_t argb, uint32_t depth_value, uint8_t stencil_value) {
+std::shared_ptr<VertexShaderProgram> TestHost::PrepareCalculation(const uint32_t *shader_code, uint32_t shader_size) {
+  ASSERT(shader_size >= 4);
+  if (shader_code_) {
+    delete[] shader_code_;
+  }
+
+  shader_code_size_ = shader_size + sizeof(kComputeFooter);
+  shader_code_ = new uint32_t[shader_code_size_];
+
+  memcpy(shader_code_, shader_code, shader_size);
+
+  uint32_t end_offset = shader_size / 4;
+
+  // Clear the "end" bit on the shader code.
+  shader_code_[end_offset - 1] &= ~0x01;
+
+  memcpy(shader_code_ + end_offset, kComputeFooter, sizeof(kComputeFooter));
+
+  auto shader = std::make_shared<VertexShaderProgram>();
+  shader->SetShaderOverride(shader_code_, shader_code_size_);
+  SetVertexShaderProgram(shader);
+
+  return shader;
+}
+
+void TestHost::Calculate(float *diffuse, float *specular, float *r0, float *r1, bool allow_saving,
+                         const std::string &output_directory, const std::string &name) {
   pb_wait_for_vbl();
   pb_reset();
 
-  // Override the values set in pb_init. Unfortunately the default is not exposed and must be recreated here.
+  Clear(0x7F7F7F7F);
 
-  Clear(argb, depth_value, stencil_value);
-
-  if (vertex_shader_program_) {
-    vertex_shader_program_->PrepareDraw();
-  }
+  ASSERT(vertex_shader_program_);
+  vertex_shader_program_->PrepareDraw();
 
   while (pb_busy()) {
     /* Wait for completion... */
+  }
+
+  static constexpr float kPatchSize = 16.0f;
+
+  float left = 0.0f;
+  float top = 0.0f;
+
+  SetFinalCombiner0Just(SRC_DIFFUSE);
+  SetFinalCombiner1Just(SRC_DIFFUSE, true);
+  Begin(PRIMITIVE_QUADS);
+  SetVertex(left, 0.0, 0.0, 1.0);
+  SetVertex(left + kPatchSize, top, 0.0, 1.0);
+  SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
+  SetVertex(left, top + kPatchSize, 0.0, 1.0);
+  End();
+
+  left += kPatchSize;
+  SetFinalCombiner0Just(SRC_SPECULAR, false, true);
+  SetFinalCombiner1Just(SRC_SPECULAR, true, true);
+  Begin(PRIMITIVE_QUADS);
+  SetVertex(left, 0.0, 0.0, 1.0);
+  SetVertex(left + kPatchSize, top, 0.0, 1.0);
+  SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
+  SetVertex(left, top + kPatchSize, 0.0, 1.0);
+  End();
+
+  left += kPatchSize;
+  SetFinalCombiner0Just(SRC_R0);
+  SetFinalCombiner1Just(SRC_R0, true);
+  Begin(PRIMITIVE_QUADS);
+  SetVertex(left, 0.0, 0.0, 1.0);
+  SetVertex(left + kPatchSize, top, 0.0, 1.0);
+  SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
+  SetVertex(left, top + kPatchSize, 0.0, 1.0);
+  End();
+
+  left += kPatchSize;
+  SetFinalCombiner0Just(SRC_R1, false, true);
+  SetFinalCombiner1Just(SRC_R1, true, true);
+  Begin(PRIMITIVE_QUADS);
+  SetVertex(left, 0.0, 0.0, 1.0);
+  SetVertex(left + kPatchSize, top, 0.0, 1.0);
+  SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
+  SetVertex(left, top + kPatchSize, 0.0, 1.0);
+  End();
+
+  while (pb_busy()) {}
+
+  const auto kSampleStride = static_cast<uint32_t>(kPatchSize);
+  uint32_t sample_x = kSampleStride / 2;
+  uint32_t sample_y = kSampleStride / 2;
+  auto output_surface = pb_back_buffer();
+  output_surface += sample_x + (sample_y * kFramebufferWidth);
+
+  uint32_t diffuse_output = *output_surface;
+  output_surface += kSampleStride;
+  uint32_t specular_output = *output_surface;
+  output_surface += kSampleStride;
+  uint32_t r0_output = *output_surface;
+  output_surface += kSampleStride;
+  uint32_t r1_output = *output_surface;
+
+  pb_print("\n%s\n", name.c_str());
+  pb_print("Diffuse : 0x%08X\n", diffuse_output);
+  pb_print("Specular: 0x%08X\n", specular_output);
+  pb_print("R0      : 0x%08X\n", r0_output);
+  pb_print("R1      : 0x%08X\n", r1_output);
+  pb_draw_text_screen();
+
+  bool perform_save = allow_saving && save_results_;
+  if (!perform_save) {
+    pb_printat(0, 55, (char *)"ns");
+    pb_draw_text_screen();
+  }
+
+  if (perform_save) {
+    // TODO: See why waiting for tiles to be non-busy results in the screen not updating anymore.
+    // In theory this should wait for all tiles to be rendered before capturing.
+    pb_wait_for_vbl();
+
+    SaveBackBuffer(output_directory, name);
+  }
+
+  while (pb_finished()) {}
+}
+
+void TestHost::SaveBackBuffer(const std::string &output_directory, const std::string &name) {
+  auto target_file = PrepareSaveFile(output_directory, name);
+
+  auto buffer = pb_agp_access(pb_back_buffer());
+  auto width = static_cast<int>(pb_back_buffer_width());
+  auto height = static_cast<int>(pb_back_buffer_height());
+  auto pitch = static_cast<int>(pb_back_buffer_pitch());
+
+  // FIXME: Support 16bpp surfaces
+  ASSERT((pitch == width * 4) && "Expected packed 32bpp surface");
+
+  // Swizzle color channels ARGB -> ABGR
+  unsigned int num_pixels = width * height;
+  uint32_t *pre_enc_buf = (uint32_t *)malloc(num_pixels * 4);
+  ASSERT(pre_enc_buf && "Failed to allocate pre-encode buffer");
+  for (unsigned int i = 0; i < num_pixels; i++) {
+    uint32_t c = static_cast<uint32_t *>(buffer)[i];
+    pre_enc_buf[i] = (c & 0xff00ff00) | ((c >> 16) & 0xff) | ((c & 0xff) << 16);
+  }
+
+  std::vector<uint8_t> out_buf;
+  if (!fpng::fpng_encode_image_to_memory((void *)pre_enc_buf, width, height, 4, out_buf)) {
+    ASSERT(!"Failed to encode PNG image");
+  }
+  free(pre_enc_buf);
+
+  FILE *pFile = fopen(target_file.c_str(), "wb");
+  ASSERT(pFile && "Failed to open output PNG image");
+  if (fwrite(out_buf.data(), 1, out_buf.size(), pFile) != out_buf.size()) {
+    ASSERT(!"Failed to write output PNG image");
+  }
+  if (fclose(pFile)) {
+    ASSERT(!"Failed to close output PNG image");
   }
 }
 
@@ -403,54 +573,6 @@ std::string TestHost::PrepareSaveFile(std::string output_directory, const std::s
   }
 
   return output_directory;
-}
-
-//void TestHost::SaveTexture(const std::string &output_directory, const std::string &name, const uint8_t *texture,
-//                           uint32_t width, uint32_t height, uint32_t pitch, uint32_t bits_per_pixel,
-//                           SDL_PixelFormatEnum format) {
-//  auto target_file = PrepareSaveFile(output_directory, name);
-//
-//  auto buffer = pb_agp_access(const_cast<void *>(static_cast<const void *>(texture)));
-//  auto size = pitch * height;
-//
-//  PrintMsg("Saving to %s. Size: %lu. Pitch %lu.\n", target_file.c_str(), size, pitch);
-//
-//  SDL_Surface *surface =
-//      SDL_CreateRGBSurfaceWithFormatFrom((void *)buffer, static_cast<int>(width), static_cast<int>(height),
-//                                         static_cast<int>(bits_per_pixel), static_cast<int>(pitch), format);
-//
-//  if (IMG_SavePNG(surface, target_file.c_str())) {
-//    PrintMsg("Failed to save PNG file '%s'\n", target_file.c_str());
-//    ASSERT(!"Failed to save PNG file.");
-//  }
-//
-//  SDL_FreeSurface(surface);
-//}
-
-void TestHost::FinishDraw(bool allow_saving, const std::string &output_directory, const std::string &name) {
-  bool perform_save = allow_saving && save_results_;
-  if (!perform_save) {
-    pb_printat(0, 55, (char *)"ns");
-    pb_draw_text_screen();
-  }
-
-  while (pb_busy()) {
-    /* Wait for completion... */
-  }
-
-  if (perform_save) {
-    // TODO: See why waiting for tiles to be non-busy results in the screen not updating anymore.
-    // In theory this should wait for all tiles to be rendered before capturing.
-    pb_wait_for_vbl();
-
-    // TODO: Capture the output regions and write the values.
-//    SaveBackBuffer(output_directory, name);
-  }
-
-  /* Swap buffers (if we can) */
-  while (pb_finished()) {
-    /* Not ready to swap yet */
-  }
 }
 
 void TestHost::SetVertexShaderProgram(std::shared_ptr<VertexShaderProgram> program) {
@@ -730,4 +852,58 @@ void TestHost::SetFinalCombinerFactorC1(uint32_t value) const {
 void TestHost::SetFinalCombinerFactorC1(float red, float green, float blue, float alpha) const {
   float rgba[4]{red, green, blue, alpha};
   SetFinalCombinerFactorC1(TO_BGRA(rgba));
+}
+
+void TestHost::ClearState() {
+  auto p = pb_begin();
+  p = pb_push1(p, NV097_SET_LIGHTING_ENABLE, false);
+  p = pb_push1(p, NV097_SET_SPECULAR_ENABLE, false);
+  p = pb_push1(p, NV097_SET_LIGHT_CONTROL, 0x20001);
+  p = pb_push1(p, NV097_SET_LIGHT_ENABLE_MASK, NV097_SET_LIGHT_ENABLE_MASK_LIGHT0_OFF);
+  p = pb_push1(p, NV097_SET_COLOR_MATERIAL, NV097_SET_COLOR_MATERIAL_ALL_FROM_MATERIAL);
+  p = pb_push1f(p, NV097_SET_MATERIAL_ALPHA, 1.0f);
+
+  p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_LIGHT_MODEL_TWO_SIDE_ENABLE, 0);
+  p = pb_push1(p, NV097_SET_FRONT_POLYGON_MODE, NV097_SET_FRONT_POLYGON_MODE_V_FILL);
+  p = pb_push1(p, NV097_SET_BACK_POLYGON_MODE, NV097_SET_FRONT_POLYGON_MODE_V_FILL);
+
+  p = pb_push1(p, NV097_SET_VERTEX_DATA4UB + 0x10, 0);           // Specular
+  p = pb_push1(p, NV097_SET_VERTEX_DATA4UB + 0x1C, 0xFFFFFFFF);  // Back diffuse
+  p = pb_push1(p, NV097_SET_VERTEX_DATA4UB + 0x20, 0);           // Back specular
+
+  p = pb_push1(p, NV097_SET_POINT_PARAMS_ENABLE, false);
+  p = pb_push1(p, NV097_SET_POINT_SMOOTH_ENABLE, false);
+  p = pb_push1(p, NV097_SET_POINT_SIZE, 8);
+
+  p = pb_push1(p, NV097_SET_DOT_RGBMAPPING, 0);
+  pb_end(p);
+
+  auto current_shader = GetShaderProgram();
+
+  static std::shared_ptr<VertexShaderProgram> shader;
+  if (!shader) {
+    shader = std::make_shared<VertexShaderProgram>();
+    shader->SetShaderOverride(kClearStateShader, sizeof(kClearStateShader));
+  }
+  SetVertexShaderProgram(shader);
+
+  // Render multiple times to ensure any parallelized hardware is initialized.
+  for (uint32_t i = 0; i < 16; ++i) {
+    Begin(PRIMITIVE_QUADS);
+    SetDiffuse(0);
+    SetVertex(kFramebufferWidth, 0.0, 0.0, 1.0);
+    SetVertex(kFramebufferWidth, kFramebufferHeight, 0.0, 1.0);
+    SetVertex(0.0, kFramebufferHeight, 0.0, 1.0);
+    SetVertex(0.0, 0.0, 0.0, 1.0);
+    End();
+  }
+
+  SetVertexShaderProgram(current_shader);
+
+  SetInputColorCombiner(0, TestHost::ColorInput(TestHost::SRC_R0), TestHost::OneInput(),
+                              TestHost::ColorInput(TestHost::SRC_R1), TestHost::OneInput());
+  SetOutputColorCombiner(0, TestHost::DST_R0, TestHost::DST_R1);
+
+  SetInputAlphaCombiner(0, TestHost::AlphaInput(TestHost::SRC_R0), TestHost::OneInput(), TestHost::AlphaInput(TestHost::SRC_R1), TestHost::OneInput());
+  SetOutputAlphaCombiner(0, TestHost::DST_R0, TestHost::DST_R1);
 }

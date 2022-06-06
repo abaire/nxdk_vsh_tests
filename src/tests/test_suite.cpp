@@ -51,58 +51,7 @@ void TestSuite::RunAll() {
 }
 
 void TestSuite::Initialize() {
-  auto p = pb_begin();
-  p = pb_push1(p, NV097_SET_LIGHTING_ENABLE, false);
-  p = pb_push1(p, NV097_SET_SPECULAR_ENABLE, false);
-  p = pb_push1(p, NV097_SET_LIGHT_CONTROL, 0x20001);
-  p = pb_push1(p, NV097_SET_LIGHT_ENABLE_MASK, NV097_SET_LIGHT_ENABLE_MASK_LIGHT0_OFF);
-  p = pb_push1(p, NV097_SET_COLOR_MATERIAL, NV097_SET_COLOR_MATERIAL_ALL_FROM_MATERIAL);
-  p = pb_push1f(p, NV097_SET_MATERIAL_ALPHA, 1.0f);
-
-  p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_LIGHT_MODEL_TWO_SIDE_ENABLE, 0);
-  p = pb_push1(p, NV097_SET_FRONT_POLYGON_MODE, NV097_SET_FRONT_POLYGON_MODE_V_FILL);
-  p = pb_push1(p, NV097_SET_BACK_POLYGON_MODE, NV097_SET_FRONT_POLYGON_MODE_V_FILL);
-
-  p = pb_push1(p, NV097_SET_VERTEX_DATA4UB + 0x10, 0);           // Specular
-  p = pb_push1(p, NV097_SET_VERTEX_DATA4UB + 0x1C, 0xFFFFFFFF);  // Back diffuse
-  p = pb_push1(p, NV097_SET_VERTEX_DATA4UB + 0x20, 0);           // Back specular
-
-  p = pb_push1(p, NV097_SET_POINT_PARAMS_ENABLE, false);
-  p = pb_push1(p, NV097_SET_POINT_SMOOTH_ENABLE, false);
-  p = pb_push1(p, NV097_SET_POINT_SIZE, 8);
-
-  p = pb_push1(p, NV097_SET_DOT_RGBMAPPING, 0);
-
-  pb_end(p);
-
-  host_.ClearInputColorCombiners();
-  host_.ClearInputAlphaCombiners();
-  host_.ClearOutputColorCombiners();
-  host_.ClearOutputAlphaCombiners();
-
-  host_.SetCombinerControl(1);
-  host_.SetInputColorCombiner(0, TestHost::SRC_DIFFUSE, false, TestHost::MAP_UNSIGNED_IDENTITY, TestHost::SRC_ZERO,
-                              false, TestHost::MAP_UNSIGNED_INVERT);
-  host_.SetInputAlphaCombiner(0, TestHost::SRC_DIFFUSE, true, TestHost::MAP_UNSIGNED_IDENTITY, TestHost::SRC_ZERO,
-                              false, TestHost::MAP_UNSIGNED_INVERT);
-
-  host_.SetOutputColorCombiner(0, TestHost::DST_DISCARD, TestHost::DST_DISCARD, TestHost::DST_R0);
-  host_.SetOutputAlphaCombiner(0, TestHost::DST_DISCARD, TestHost::DST_DISCARD, TestHost::DST_R0);
-
-  host_.SetFinalCombiner0(TestHost::SRC_ZERO, false, false, TestHost::SRC_ZERO, false, false, TestHost::SRC_ZERO, false,
-                          false, TestHost::SRC_R0);
-  host_.SetFinalCombiner1(TestHost::SRC_ZERO, false, false, TestHost::SRC_ZERO, false, false, TestHost::SRC_R0, true,
-                          false, false, false, true);
-
-  while (pb_busy()) {
-    /* Wait for completion... */
-  }
-
-  p = pb_begin();
-
-  pb_end(p);
-
-  host_.SetVertexShaderProgram(nullptr);
+  host_.ClearState();
 }
 
 std::chrono::steady_clock::time_point TestSuite::LogTestStart(const std::string& test_name) {

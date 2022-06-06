@@ -22,18 +22,21 @@ OPTIMIZED_SRCS = \
 	$(SRCDIR)/pbkit_ext.cpp \
 	$(SRCDIR)/shaders/vertex_shader_program.cpp \
 	$(SRCDIR)/test_driver.cpp \
-	$(THIRDPARTYDIR)/printf/printf.c
+	$(THIRDPARTYDIR)/printf/printf.c \
+	$(THIRDPARTYDIR)/fpng/src/fpng.cpp
 
 SRCS = \
 	$(SRCDIR)/test_host.cpp \
-	$(SRCDIR)/tests/attribute_carryover_tests.cpp \
+	$(SRCDIR)/tests/mac_mov_tests.cpp \
 	$(SRCDIR)/tests/test_suite.cpp
 
 NV2A_VSH_OBJS = \
-	$(SRCDIR)/shaders/fog_vec4_unset.vshinc
+	$(SRCDIR)/shaders/clear_state.vshinc \
+	$(SRCDIR)/shaders/compute_footer.vshinc \
+	$(SRCDIR)/shaders/mov_r0.vshinc
 
 CFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR)
-CXXFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR)
+CXXFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR) -DFPNG_NO_STDIO=1 -DFPNG_NO_SSE=1
 
 OPTIMIZE_COMPILE_FLAGS = -O3 -fno-strict-aliasing
 ifneq ($(DEBUG),y)

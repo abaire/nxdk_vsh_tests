@@ -154,24 +154,22 @@ class TestHost {
 
  public:
   TestHost();
+  ~TestHost();
 
-  void Clear(uint32_t argb = 0xFF000000, uint32_t depth_value = 0xFFFFFFFF, uint8_t stencil_value = 0x00) const;
-  void ClearDepthStencilRegion(uint32_t depth_value, uint8_t stencil_value, uint32_t left = 0, uint32_t top = 0,
-                               uint32_t width = 0, uint32_t height = 0) const;
-  void ClearColorRegion(uint32_t argb, uint32_t left = 0, uint32_t top = 0, uint32_t width = 0,
-                        uint32_t height = 0) const;
-  static void EraseText();
+  std::shared_ptr<VertexShaderProgram> PrepareCalculation(const uint32_t *shader, uint32_t shader_size);
 
-  // Note: A number of states are expected to be set before this method is called.
-  // E.g., texture stages, shader states
-  // This is not an exhaustive list and is not necessarily up to date. Prefer to call this just before initiating draw
-  // and be suspect of order dependence if you see results that seem to indicate that settings are being ignored.
-  void PrepareDraw(uint32_t argb = 0x00000000, uint32_t depth_value = 0xFFFFFFFF, uint8_t stencil_value = 0x00);
-
-  void FinishDraw(bool allow_saving, const std::string &output_directory, const std::string &name);
+  // Runs the active vertex shader, collecting the values written to:
+  // oD0 -> diffuse
+  // oD1 -> specular
+  // r0 -> r0
+  // r1 -> r1
+  void Calculate(VECTOR diffuse, VECTOR specular, VECTOR r0, VECTOR r1, bool allow_saving, const std::string &output_directory, const std::string &name);
 
   void SetVertexShaderProgram(std::shared_ptr<VertexShaderProgram> program);
   std::shared_ptr<VertexShaderProgram> GetShaderProgram() const { return vertex_shader_program_; }
+
+  // Clear all vertex shaders registers to known values.
+  void ClearState();
 
   // Start the process of rendering an inline-defined primitive (specified via SetXXXX methods below).
   // Note that End() must be called to trigger rendering, and that SetVertex() triggers the creation of a vertex.
@@ -216,6 +214,17 @@ class TestHost {
 
   bool GetSaveResults() const { return save_results_; }
   void SetSaveResults(bool enable = true) { save_results_ = enable; }
+
+  static void EnsureFolderExists(const std::string &folder_path);
+
+ private:
+  void SaveBackBuffer(const std::string &output_directory, const std::string &name);
+
+  void Clear(uint32_t argb = 0xFF000000, uint32_t depth_value = 0xFFFFFFFF, uint8_t stencil_value = 0x00) const;
+  void ClearDepthStencilRegion(uint32_t depth_value, uint8_t stencil_value, uint32_t left = 0, uint32_t top = 0,
+                               uint32_t width = 0, uint32_t height = 0) const;
+  void ClearColorRegion(uint32_t argb, uint32_t left = 0, uint32_t top = 0, uint32_t width = 0,
+                        uint32_t height = 0) const;
 
   // Sets up the number of enabled color combiners and behavior flags.
   //
@@ -295,24 +304,21 @@ class TestHost {
   void SetFinalCombinerFactorC1(uint32_t value) const;
   void SetFinalCombinerFactorC1(float red, float green, float blue, float alpha) const;
 
-  static void EnsureFolderExists(const std::string &folder_path);
-
- private:
-  // Update matrices when the depth buffer format changes.
-  void HandleDepthBufferFormatChange();
+  static std::string PrepareSaveFile(std::string output_directory, const std::string &filename, const std::string &ext = ".png");
   uint32_t MakeInputCombiner(CombinerSource a_source, bool a_alpha, CombinerMapping a_mapping, CombinerSource b_source,
                              bool b_alpha, CombinerMapping b_mapping, CombinerSource c_source, bool c_alpha,
                              CombinerMapping c_mapping, CombinerSource d_source, bool d_alpha,
                              CombinerMapping d_mapping) const;
   uint32_t MakeOutputCombiner(CombinerDest ab_dst, CombinerDest cd_dst, CombinerDest sum_dst, bool ab_dot_product,
                               bool cd_dot_product, CombinerSumMuxMode sum_or_mux, CombinerOutOp op) const;
-  static std::string PrepareSaveFile(std::string output_directory, const std::string &filename,
-                                     const std::string &ext = ".png");
-  static void SaveBackBuffer(const std::string &output_directory, const std::string &name);
 
  private:
   std::shared_ptr<VertexShaderProgram> vertex_shader_program_{};
   bool save_results_{true};
+
+  uint8_t *compute_buffer_{nullptr};
+  uint32_t *shader_code_{nullptr};
+  uint32_t shader_code_size_{0};
 };
 
 #endif  // NXDK_PGRAPH_TESTS_TEST_HOST_H

@@ -22,8 +22,7 @@
 #include "logger.h"
 #include "test_driver.h"
 #include "test_host.h"
-#include "tests/attribute_carryover_tests.h"
-
+#include "tests/mac_mov_tests.h"
 
 #ifndef FALLBACK_OUTPUT_ROOT_PATH
 #define FALLBACK_OUTPUT_ROOT_PATH "e:\\";
@@ -160,7 +159,7 @@ static bool get_test_output_path(std::string& test_output_directory) {
   if (last_char == '\\' || last_char == '/') {
     test_output_directory.pop_back();
   }
-  test_output_directory += "\\nxdk_pgraph_tests";
+  test_output_directory += "\\nxdk_vsh_tests";
   return true;
 }
 
@@ -176,7 +175,7 @@ static void dump_config_file(const std::string& config_file_path,
   std::ofstream config_file(config_file_path);
   ASSERT(config_file && "Failed to open config file for output");
 
-  config_file << "# pgraph test suite configuration" << std::endl;
+  config_file << "# vsh test suite configuration" << std::endl;
   config_file << "# Lines starting with '#' are ignored." << std::endl;
   config_file << "# To enable a test suite, add its name on a single line with no leading #. E.g.," << std::endl;
   config_file << "# Lighting normals" << std::endl;
@@ -248,7 +247,7 @@ static void process_config(const char* config_file_path, std::vector<std::shared
 static void register_suites(TestHost& host, std::vector<std::shared_ptr<TestSuite>>& test_suites,
                             const std::string& output_directory) {
   {
-    auto suite = std::make_shared<AttributeCarryoverTests>(host, output_directory);
+    auto suite = std::make_shared<MACMovTests>(host, output_directory);
     test_suites.push_back(suite);
   }
 }
