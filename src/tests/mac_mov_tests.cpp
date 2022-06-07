@@ -23,6 +23,9 @@ MACMovTests::MACMovTests(TestHost &host, std::string output_dir)
 void MACMovTests::Initialize() {
   TestSuite::Initialize();
 
+  results_.clear();
+  computations_.clear();
+
   char buffer[32] = {0};
 
   snprintf(buffer, sizeof(buffer), "0x%08X xyzw xy", 0x1AFE326C);

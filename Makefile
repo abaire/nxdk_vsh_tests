@@ -28,12 +28,14 @@ OPTIMIZED_SRCS = \
 SRCS = \
 	$(SRCDIR)/test_host.cpp \
 	$(SRCDIR)/tests/mac_mov_tests.cpp \
-	$(SRCDIR)/tests/test_suite.cpp
+	$(SRCDIR)/tests/test_suite.cpp \
+	$(SRCDIR)/tests/mac_add_tests.cpp
 
 NV2A_VSH_OBJS = \
 	$(SRCDIR)/shaders/clear_state.vshinc \
 	$(SRCDIR)/shaders/compute_footer.vshinc \
-	$(SRCDIR)/shaders/mac_mov_v3__od0_od1xy.vshinc
+	$(SRCDIR)/shaders/mac_mov_v3__od0_od1xy.vshinc \
+	$(SRCDIR)/shaders/mac_add_v3_v4__od0.vshinc
 
 CFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR)
 CXXFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR) -DFPNG_NO_STDIO=1 -DFPNG_NO_SSE=1
