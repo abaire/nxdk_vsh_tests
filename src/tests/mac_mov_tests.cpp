@@ -9,7 +9,7 @@
 
 //// clang format off
 static constexpr uint32_t kShader[] = {
-#include "shaders/mov_r0.vshinc"
+#include "shaders/mac_mov_v3__od0_od1xy.vshinc"
 };
 //// clang format on
 
@@ -23,16 +23,16 @@ MACMovTests::MACMovTests(TestHost &host, std::string output_dir)
 void MACMovTests::Initialize() {
   TestSuite::Initialize();
 
-  auto shader = host_.PrepareCalculation(kShader, sizeof(kShader));
+  char buffer[32] = {0};
+
+  snprintf(buffer, sizeof(buffer), "0x%08X xyzw xy", 0x1AFE326C);
+  results_.push_back({buffer, 0, 0});
+  computations_.push_back({kShader, sizeof(kShader), TestHost::NullPrepare, &results_.back()});
 }
 
 
 void MACMovTests::Test() {
-  VECTOR diffuse;
-  VECTOR specular;
-  VECTOR r0;
-  VECTOR r1;
-
-  host_.SetDiffuse(0xFFFE326C);
-  host_.Calculate(diffuse, specular, r0, r1, allow_saving_, output_dir_, kTest);
+  host_.SetDiffuse(0x1AFE326C);
+  host_.Compute(computations_);
+  host_.DrawResults(results_, allow_saving_, output_dir_, kTest);
 }

@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <list>
 
 #include "math3d.h"
 #include "nxdk_ext.h"
@@ -25,11 +26,27 @@ constexpr int32_t kNextContextChannel = 25;
 
 constexpr uint32_t kNoStrideOverride = 0xFFFFFFFF;
 
-#define VRAM_ADDR(x) ((x)&0x03FFFFFF)
+#define ABGR(x) (((x) & 0xFF00FF00) | (((x) & 0xFF) << 16) | (((x) & 0x00FF0000) >> 16))
+
 #define SET_MASK(mask, val) (((val) << (__builtin_ffs(mask) - 1)) & (mask))
 
 class TestHost {
  public:
+  struct Results {
+    std::string title;
+    uint32_t diffuse{0};
+    uint32_t specular{0};
+  };
+
+  struct Computation {
+    const uint32_t *shader_code{nullptr};
+    uint32_t shader_size{0};
+
+    std::function<void(const std::shared_ptr<VertexShaderProgram>&)> prepare;
+
+    Results *results;
+  };
+
   enum DrawPrimitive {
     PRIMITIVE_POINTS = NV097_SET_BEGIN_END_OP_POINTS,
     PRIMITIVE_LINES = NV097_SET_BEGIN_END_OP_LINES,
@@ -156,14 +173,10 @@ class TestHost {
   TestHost();
   ~TestHost();
 
-  std::shared_ptr<VertexShaderProgram> PrepareCalculation(const uint32_t *shader, uint32_t shader_size);
+  static void NullPrepare(const std::shared_ptr<VertexShaderProgram> &) {};
 
-  // Runs the active vertex shader, collecting the values written to:
-  // oD0 -> diffuse
-  // oD1 -> specular
-  // r0 -> r0
-  // r1 -> r1
-  void Calculate(VECTOR diffuse, VECTOR specular, VECTOR r0, VECTOR r1, bool allow_saving, const std::string &output_directory, const std::string &name);
+  void Compute(const std::list<Computation> &computations);
+  void DrawResults(const std::list<Results> &results, bool allow_saving, const std::string &output_directory, const std::string &name);
 
   void SetVertexShaderProgram(std::shared_ptr<VertexShaderProgram> program);
   std::shared_ptr<VertexShaderProgram> GetShaderProgram() const { return vertex_shader_program_; }
@@ -218,6 +231,8 @@ class TestHost {
   static void EnsureFolderExists(const std::string &folder_path);
 
  private:
+  std::shared_ptr<VertexShaderProgram> PrepareCalculation(const uint32_t *shader_code, uint32_t shader_size);
+
   void SaveBackBuffer(const std::string &output_directory, const std::string &name);
 
   void Clear(uint32_t argb = 0xFF000000, uint32_t depth_value = 0xFFFFFFFF, uint8_t stencil_value = 0x00) const;

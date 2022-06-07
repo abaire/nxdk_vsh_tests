@@ -61,6 +61,9 @@ static void SetSurfaceFormat() {
   p = pb_push1(p, NV097_SET_CONTROL0, MASK(NV097_SET_CONTROL0_Z_FORMAT, NV097_SET_CONTROL0_Z_FORMAT_FIXED));
 
   p = pb_push1(p, NV097_SET_BLEND_ENABLE, false);
+  p = pb_push1(p, NV097_SET_BLEND_EQUATION, NV097_SET_BLEND_EQUATION_V_FUNC_ADD);
+  p = pb_push1(p, NV097_SET_BLEND_FUNC_SFACTOR, NV097_SET_BLEND_FUNC_SFACTOR_V_SRC_ALPHA);
+  p = pb_push1(p, NV097_SET_BLEND_FUNC_DFACTOR, NV097_SET_BLEND_FUNC_DFACTOR_V_ZERO);
 
   p = pb_push1(
       p, NV097_SET_SHADER_STAGE_PROGRAM,
@@ -168,6 +171,84 @@ void TestHost::Clear(uint32_t argb, uint32_t depth_value, uint8_t stencil_value)
   pb_erase_text_screen();
 }
 
+void TestHost::Compute(const std::list<Computation> &computations) {
+  static constexpr float kPatchSize = 16.0f;
+  static constexpr auto kSampleStride = static_cast<uint32_t>(kPatchSize);
+
+  for (auto &test : computations) {
+    auto shader = PrepareCalculation(test.shader_code, test.shader_size);
+    test.prepare(shader);
+    shader->PrepareDraw();
+
+    while (pb_busy()) {}
+
+    float left = 0.0f;
+    float top = 0.0f;
+
+    SetFinalCombiner0Just(SRC_DIFFUSE);
+    SetFinalCombiner1Just(SRC_DIFFUSE, true);
+    Begin(PRIMITIVE_QUADS);
+    SetVertex(left, 0.0, 0.0, 1.0);
+    SetVertex(left + kPatchSize, top, 0.0, 1.0);
+    SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
+    SetVertex(left, top + kPatchSize, 0.0, 1.0);
+    End();
+
+    left += kPatchSize;
+    SetFinalCombiner0Just(SRC_SPECULAR);
+    SetFinalCombiner1Just(SRC_SPECULAR, true);
+    Begin(PRIMITIVE_QUADS);
+    SetVertex(left, 0.0, 0.0, 1.0);
+    SetVertex(left + kPatchSize, top, 0.0, 1.0);
+    SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
+    SetVertex(left, top + kPatchSize, 0.0, 1.0);
+    End();
+
+    while (pb_busy()) {}
+
+    uint32_t sample_x = kSampleStride / 2;
+    uint32_t sample_y = kSampleStride / 2;
+    auto output_surface = pb_back_buffer();
+    output_surface += sample_x + (sample_y * kFramebufferWidth);
+
+    test.results->diffuse = ABGR(*output_surface);
+    output_surface += kSampleStride;
+    test.results->specular = ABGR(*output_surface);
+  }
+}
+
+void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving, const std::string &output_directory,
+                           const std::string &name) {
+  pb_wait_for_vbl();
+  pb_reset();
+
+  Clear(0x7F7F7F7F);
+
+  pb_print("%s\n", name.c_str());
+
+  for (auto &result : results) {
+    pb_print("%s: D:0x%08X S:0x%08X\n", result.title.c_str(), result.diffuse, result.specular);
+  }
+
+  pb_draw_text_screen();
+
+  bool perform_save = allow_saving && save_results_;
+  if (!perform_save) {
+    pb_printat(0, 55, (char *)"ns");
+    pb_draw_text_screen();
+  }
+
+  if (perform_save) {
+    // TODO: See why waiting for tiles to be non-busy results in the screen not updating anymore.
+    // In theory this should wait for all tiles to be rendered before capturing.
+    pb_wait_for_vbl();
+
+    SaveBackBuffer(output_directory, name);
+  }
+
+  while (pb_finished()) {}
+}
+
 std::shared_ptr<VertexShaderProgram> TestHost::PrepareCalculation(const uint32_t *shader_code, uint32_t shader_size) {
   ASSERT(shader_size >= 4);
   if (shader_code_) {
@@ -191,104 +272,6 @@ std::shared_ptr<VertexShaderProgram> TestHost::PrepareCalculation(const uint32_t
   SetVertexShaderProgram(shader);
 
   return shader;
-}
-
-void TestHost::Calculate(float *diffuse, float *specular, float *r0, float *r1, bool allow_saving,
-                         const std::string &output_directory, const std::string &name) {
-  pb_wait_for_vbl();
-  pb_reset();
-
-  Clear(0x7F7F7F7F);
-
-  ASSERT(vertex_shader_program_);
-  vertex_shader_program_->PrepareDraw();
-
-  while (pb_busy()) {
-    /* Wait for completion... */
-  }
-
-  static constexpr float kPatchSize = 16.0f;
-
-  float left = 0.0f;
-  float top = 0.0f;
-
-  SetFinalCombiner0Just(SRC_DIFFUSE);
-  SetFinalCombiner1Just(SRC_DIFFUSE, true);
-  Begin(PRIMITIVE_QUADS);
-  SetVertex(left, 0.0, 0.0, 1.0);
-  SetVertex(left + kPatchSize, top, 0.0, 1.0);
-  SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
-  SetVertex(left, top + kPatchSize, 0.0, 1.0);
-  End();
-
-  left += kPatchSize;
-  SetFinalCombiner0Just(SRC_SPECULAR, false, true);
-  SetFinalCombiner1Just(SRC_SPECULAR, true, true);
-  Begin(PRIMITIVE_QUADS);
-  SetVertex(left, 0.0, 0.0, 1.0);
-  SetVertex(left + kPatchSize, top, 0.0, 1.0);
-  SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
-  SetVertex(left, top + kPatchSize, 0.0, 1.0);
-  End();
-
-  left += kPatchSize;
-  SetFinalCombiner0Just(SRC_R0);
-  SetFinalCombiner1Just(SRC_R0, true);
-  Begin(PRIMITIVE_QUADS);
-  SetVertex(left, 0.0, 0.0, 1.0);
-  SetVertex(left + kPatchSize, top, 0.0, 1.0);
-  SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
-  SetVertex(left, top + kPatchSize, 0.0, 1.0);
-  End();
-
-  left += kPatchSize;
-  SetFinalCombiner0Just(SRC_R1, false, true);
-  SetFinalCombiner1Just(SRC_R1, true, true);
-  Begin(PRIMITIVE_QUADS);
-  SetVertex(left, 0.0, 0.0, 1.0);
-  SetVertex(left + kPatchSize, top, 0.0, 1.0);
-  SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
-  SetVertex(left, top + kPatchSize, 0.0, 1.0);
-  End();
-
-  while (pb_busy()) {}
-
-  const auto kSampleStride = static_cast<uint32_t>(kPatchSize);
-  uint32_t sample_x = kSampleStride / 2;
-  uint32_t sample_y = kSampleStride / 2;
-  auto output_surface = pb_back_buffer();
-  output_surface += sample_x + (sample_y * kFramebufferWidth);
-
-  uint32_t diffuse_output = *output_surface;
-  output_surface += kSampleStride;
-  uint32_t specular_output = *output_surface;
-  output_surface += kSampleStride;
-  uint32_t r0_output = *output_surface;
-  output_surface += kSampleStride;
-  uint32_t r1_output = *output_surface;
-
-  pb_print("\n%s\n", name.c_str());
-  pb_print("Diffuse : 0x%08X\n", diffuse_output);
-  pb_print("Specular: 0x%08X\n", specular_output);
-  pb_print("R0      : 0x%08X\n", r0_output);
-  pb_print("R1      : 0x%08X\n", r1_output);
-  pb_draw_text_screen();
-
-  bool perform_save = allow_saving && save_results_;
-  if (!perform_save) {
-    pb_printat(0, 55, (char *)"ns");
-    pb_draw_text_screen();
-  }
-
-  if (perform_save) {
-    // TODO: See why waiting for tiles to be non-busy results in the screen not updating anymore.
-    // In theory this should wait for all tiles to be rendered before capturing.
-    pb_wait_for_vbl();
-
-    SaveBackBuffer(output_directory, name);
-  }
-
-  while (pb_finished()) {}
 }
 
 void TestHost::SaveBackBuffer(const std::string &output_directory, const std::string &name) {

@@ -12,4 +12,8 @@ class MACMovTests : public TestSuite {
 
  private:
   void Test();
+
+ private:
+  std::list<TestHost::Computation> computations_;
+  std::list<TestHost::Results> results_;
 };

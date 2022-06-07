@@ -33,7 +33,7 @@ SRCS = \
 NV2A_VSH_OBJS = \
 	$(SRCDIR)/shaders/clear_state.vshinc \
 	$(SRCDIR)/shaders/compute_footer.vshinc \
-	$(SRCDIR)/shaders/mov_r0.vshinc
+	$(SRCDIR)/shaders/mac_mov_v3__od0_od1xy.vshinc
 
 CFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR)
 CXXFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR) -DFPNG_NO_STDIO=1 -DFPNG_NO_SSE=1
