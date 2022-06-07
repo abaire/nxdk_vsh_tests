@@ -6,7 +6,6 @@
 // clang format on
 
 #include <fpng/src/fpng.h>
-
 #include <strings.h>
 #include <windows.h>
 
@@ -16,6 +15,7 @@
 #include "debug_output.h"
 #include "nxdk_ext.h"
 #include "pbkit_ext.h"
+#include "pgraph_diff_token.h"
 #include "shaders/vertex_shader_program.h"
 
 // clang format off
@@ -27,6 +27,9 @@ static const uint32_t kComputeFooter[] = {
 #include "shaders/compute_footer.vshinc"
 };
 // clang format on
+
+static constexpr uint32_t NV10_PGRAPH_RDI_INDEX = 0xFD400750;
+static constexpr uint32_t NV10_PGRAPH_RDI_DATA = 0xFD400754;
 
 #define TO_BGRA(float_vals)                                                                      \
   (((uint32_t)((float_vals)[3] * 255.0f) << 24) + ((uint32_t)((float_vals)[0] * 255.0f) << 16) + \
@@ -171,9 +174,49 @@ void TestHost::Clear(uint32_t argb, uint32_t depth_value, uint8_t stencil_value)
   pb_erase_text_screen();
 }
 
+#if 0
+// TODO: This seems to work the first time its called, but if called immediately after with another index, it will
+// return the 4th component of the first result as the first component.
+static void __attribute__((optimize("O0"))) fetch_constant(VECTOR output, uint32_t offset = 96) {
+
+  // See RDI dumping code in nv2a-trace.
+  // https://github.com/XboxDev/nv2a-trace/blob/65bdd2369a5b216cfc47c9545f870c49d118276b/Trace.py#L58
+  static constexpr uint32_t VP_CONSTANTS_BASE = 0x170000;
+
+  auto index = reinterpret_cast<uint32_t*>(NV10_PGRAPH_RDI_INDEX);
+  volatile auto data = reinterpret_cast<float*>(NV10_PGRAPH_RDI_DATA);
+
+  // Each entry is 4 floats (16 bytes)
+  *index = VP_CONSTANTS_BASE + (offset * 16);
+
+  // Values appear to be retrieved in inverse order.
+  output[3] = *data;
+  output[2] = *data;
+  output[1] = *data;
+  output[0] = *data;
+}
+#endif
+
+static void __attribute__((optimize("O0"))) fetch_constants(float *buffer) {
+  // See RDI dumping code in nv2a-trace.
+  // https://github.com/XboxDev/nv2a-trace/blob/65bdd2369a5b216cfc47c9545f870c49d118276b/Trace.py#L58
+  static constexpr uint32_t VP_CONSTANTS_BASE = 0x170000;
+
+  auto index = reinterpret_cast<uint32_t*>(NV10_PGRAPH_RDI_INDEX);
+  volatile auto data = reinterpret_cast<float*>(NV10_PGRAPH_RDI_DATA);
+
+  *index = VP_CONSTANTS_BASE;
+
+  for (uint32_t offset = 0; offset < 192; ++offset) {
+    *buffer++ = *data;
+    *buffer++ = *data;
+    *buffer++ = *data;
+    *buffer++ = *data;
+  }
+}
+
 void TestHost::Compute(const std::list<Computation> &computations) {
   static constexpr float kPatchSize = 16.0f;
-  static constexpr auto kSampleStride = static_cast<uint32_t>(kPatchSize);
 
   for (auto &test : computations) {
     auto shader = PrepareCalculation(test.shader_code, test.shader_size);
@@ -185,8 +228,8 @@ void TestHost::Compute(const std::list<Computation> &computations) {
     float left = 0.0f;
     float top = 0.0f;
 
-    SetFinalCombiner0Just(SRC_DIFFUSE);
-    SetFinalCombiner1Just(SRC_DIFFUSE, true);
+    SetFinalCombiner0Just(SRC_ZERO);
+    SetFinalCombiner1Just(SRC_ZERO, true);
     Begin(PRIMITIVE_QUADS);
     SetVertex(left, 0.0, 0.0, 1.0);
     SetVertex(left + kPatchSize, top, 0.0, 1.0);
@@ -195,8 +238,6 @@ void TestHost::Compute(const std::list<Computation> &computations) {
     End();
 
     left += kPatchSize;
-    SetFinalCombiner0Just(SRC_SPECULAR);
-    SetFinalCombiner1Just(SRC_SPECULAR, true);
     Begin(PRIMITIVE_QUADS);
     SetVertex(left, 0.0, 0.0, 1.0);
     SetVertex(left + kPatchSize, top, 0.0, 1.0);
@@ -206,14 +247,28 @@ void TestHost::Compute(const std::list<Computation> &computations) {
 
     while (pb_busy()) {}
 
-    uint32_t sample_x = kSampleStride / 2;
-    uint32_t sample_y = kSampleStride / 2;
-    auto output_surface = pb_back_buffer();
-    output_surface += sample_x + (sample_y * kFramebufferWidth);
+    fetch_constants(constants_);
+#define GET_CONSTANT(var, idx) do { \
+    auto base = constants_ + ((idx)*4);                                \
+    var[3] = *base++;                                 \
+    var[2] = *base++;                                 \
+    var[1] = *base++;                                 \
+    var[0] = *base++;               \
+    } while(0)
 
-    test.results->diffuse = ABGR(*output_surface);
-    output_surface += kSampleStride;
-    test.results->specular = ABGR(*output_surface);
+    if (test.results->results_mask & RES_0) {
+      GET_CONSTANT(test.results->c188, 188);
+    }
+    if (test.results->results_mask & RES_1) {
+      GET_CONSTANT(test.results->c189, 189);
+    }
+    if (test.results->results_mask & RES_2) {
+      GET_CONSTANT(test.results->c190, 190);
+    }
+    if (test.results->results_mask & RES_3) {
+      GET_CONSTANT(test.results->c191, 191);
+    }
+#undef GET_CONSTANT
   }
 }
 
@@ -222,12 +277,31 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
   pb_wait_for_vbl();
   pb_reset();
 
-  Clear(0x7F7F7F7F);
+  Clear(0x2F2C2E);
+
+  SetFinalCombiner0Just(SRC_ZERO);
+  SetFinalCombiner1Just(SRC_ZERO, true, true);
 
   pb_print("%s\n", name.c_str());
 
+  auto print_vals = [](uint32_t index, const VECTOR vals) {
+    pb_print(" [%d]:%f,%f,%f,%f\n", index, vals[0], vals[1], vals[2], vals[3]);
+  };
+
   for (auto &result : results) {
-    pb_print("%s: D:0x%08X S:0x%08X\n", result.title.c_str(), result.diffuse, result.specular);
+    pb_print("%s:\n", result.title.c_str());
+    if (result.results_mask & RES_0) {
+      print_vals(0, result.c188);
+    }
+    if (result.results_mask & RES_1) {
+      print_vals(1, result.c189);
+    }
+    if (result.results_mask & RES_2) {
+      print_vals(2, result.c190);
+    }
+    if (result.results_mask & RES_3) {
+      print_vals(3, result.c191);
+    }
   }
 
   pb_draw_text_screen();

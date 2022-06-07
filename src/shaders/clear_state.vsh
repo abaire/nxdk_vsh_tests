@@ -1,4 +1,5 @@
 ; Sets all registers to a known state, passed as the diffuse color.
+#output matrix4 188
 
 mov oPos, v0
 mov oD0, v3
@@ -24,3 +25,8 @@ mov r8, v3
 mov r9, v3
 mov r10, v3
 mov r11, v3
+
+mov #output[0], v3
+mov #output[1], v3
+mov #output[2], v3
+mov #output[3], v3

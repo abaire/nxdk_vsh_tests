@@ -9,7 +9,7 @@
 
 //// clang format off
 static constexpr uint32_t kShader[] = {
-#include "shaders/mac_mov_v3__od0_od1xy.vshinc"
+#include "shaders/mac_mov.vshinc"
 };
 //// clang format on
 
@@ -26,11 +26,17 @@ void MACMovTests::Initialize() {
   results_.clear();
   computations_.clear();
 
-  char buffer[32] = {0};
+  char buffer[128] = {0};
 
-  snprintf(buffer, sizeof(buffer), "0x%08X xyzw xy", 0x1AFE326C);
-  results_.push_back({buffer, 0, 0});
-  computations_.push_back({kShader, sizeof(kShader), TestHost::NullPrepare, &results_.back()});
+  {
+    VECTOR a = {1.0f, 2.0f, -3.0f, -4.12345f};
+    snprintf(buffer, sizeof(buffer), "%f,%f,%f,%f", a[0], a[1], a[2], a[3]);
+    auto prepare = [a](const std::shared_ptr<VertexShaderProgram> &shader) {
+      shader->SetUniform4F(96, a);
+    };
+    results_.emplace_back(buffer);
+    computations_.push_back({kShader, sizeof(kShader), prepare, &results_.back()});
+  }
 }
 
 

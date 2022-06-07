@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <memory>
 #include <list>
+#include <utility>
 
 #include "math3d.h"
 #include "nxdk_ext.h"
@@ -30,12 +31,24 @@ constexpr uint32_t kNoStrideOverride = 0xFFFFFFFF;
 
 #define SET_MASK(mask, val) (((val) << (__builtin_ffs(mask) - 1)) & (mask))
 
+// Defines which fields in a TestHost::Results should be displayed.
+constexpr uint32_t RES_0 = 1 << 0;
+constexpr uint32_t RES_1 = 1 << 1;
+constexpr uint32_t RES_2 = 1 << 2;
+constexpr uint32_t RES_3 = 1 << 3;
+constexpr uint32_t RES_ALL = RES_0 | RES_1 | RES_2 | RES_3;
+
 class TestHost {
  public:
   struct Results {
     std::string title;
-    uint32_t diffuse{0};
-    uint32_t specular{0};
+    uint32_t results_mask;
+    VECTOR c188{0.0f, 0.0f, 0.0f, 0.0f};
+    VECTOR c189{0.0f, 0.0f, 0.0f, 0.0f};
+    VECTOR c190{0.0f, 0.0f, 0.0f, 0.0f};
+    VECTOR c191{0.0f, 0.0f, 0.0f, 0.0f};
+
+    explicit Results(std::string title, uint32_t results_mask = RES_0) : title(std::move(title)), results_mask(results_mask) {}
   };
 
   struct Computation {
@@ -334,6 +347,9 @@ class TestHost {
   uint8_t *compute_buffer_{nullptr};
   uint32_t *shader_code_{nullptr};
   uint32_t shader_code_size_{0};
+
+  // The vsh constants, fetched via RDI.
+  float constants_[192 * 4]{0.0f};
 };
 
 #endif  // NXDK_PGRAPH_TESTS_TEST_HOST_H

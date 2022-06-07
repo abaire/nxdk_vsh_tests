@@ -36,10 +36,17 @@ void _CLASSNAME_::Initialize() {
   results_.clear();
   computations_.clear();
 
-  char buffer[32] = {0};
-  snprintf(buffer, sizeof(buffer), "0x%08X xyzw xy", 0x1AFE326C);
-  results_.push_back({buffer, 0, 0});
-  computations_.push_back({kShader, sizeof(kShader), TestHost::NullPrepare, &results_.back()});
+  char buffer[128] = {0};
+
+  {
+    VECTOR a = {1.0f, 2.0f, 3.0f, 4.0f};
+    snprintf(buffer, sizeof(buffer), "%f,%f,%f,%f", a[0], a[1], a[2], a[3]);
+    auto prepare = [a](const std::shared_ptr<VertexShaderProgram> &shader) {
+      shader->SetUniform4F(96, a);
+    };
+    results_.emplace_back(buffer);
+    computations_.push_back({kShader, sizeof(kShader), prepare, &results_.back()});
+  }
 }
 
 
@@ -71,6 +78,10 @@ class _CLASSNAME_ : public TestSuite {
 };
 """
 
+
+_SHADER_TEMPLATE = """; Values from c[188], c[189], c[190], c[191] will be captured
+#output matrix4 188
+"""
 
 def _make_filename(name: str, extension: str) -> str:
     name = name.lower().replace(" ", "_")

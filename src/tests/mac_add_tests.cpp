@@ -9,7 +9,7 @@
 
 // clang format off
 static constexpr uint32_t kShader[] = {
-    #include "shaders/mac_add_v3_v4__od0.vshinc"
+    #include "shaders/mac_add.vshinc"
 };
 // clang format on
 
@@ -26,17 +26,17 @@ void MacAddTests::Initialize() {
   results_.clear();
   computations_.clear();
 
-  char buffer[32] = {0};
+  char buffer[128] = {0};
 
   {
-    uint32_t a = 0x1AFE326C;
-    uint32_t b = 0x21004A33;
-    snprintf(buffer, sizeof(buffer), "0x%08X,0x%08X xyzw xy", a, b);
-    auto prepare = [this, a, b](const std::shared_ptr<VertexShaderProgram> &_shader) {
-      host_.SetDiffuse(a);
-      host_.SetSpecular(b);
+    VECTOR a = {1.0f, 2.0f, -1.0f, -2.33f};
+    VECTOR b = {1000.5f, 2424.99f, 1.0f, -100.0f};
+    snprintf(buffer, sizeof(buffer), "%f,%f,%f,%f +\n%f,%f,%f,%f", a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3]);
+    auto prepare = [a, b](const std::shared_ptr<VertexShaderProgram> &shader) {
+      shader->SetUniform4F(96, a);
+      shader->SetUniform4F(97, b);
     };
-    results_.push_back({buffer, 0, 0});
+    results_.emplace_back(buffer);
     computations_.push_back({kShader, sizeof(kShader), prepare, &results_.back()});
   }
 }
