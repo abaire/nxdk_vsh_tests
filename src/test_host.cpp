@@ -942,6 +942,12 @@ void TestHost::ClearState() {
   if (!shader) {
     shader = std::make_shared<VertexShaderProgram>();
     shader->SetShaderOverride(kClearStateShader, sizeof(kClearStateShader));
+
+    // Clear the outputs registers.
+    shader->SetUniformF(188, 0.0f, 0.0f, 0.0f, 0.0f);
+    shader->SetUniformF(189, 0.0f, 0.0f, 0.0f, 0.0f);
+    shader->SetUniformF(190, 0.0f, 0.0f, 0.0f, 0.0f);
+    shader->SetUniformF(191, 0.0f, 0.0f, 0.0f, 0.0f);
   }
   SetVertexShaderProgram(shader);
 
