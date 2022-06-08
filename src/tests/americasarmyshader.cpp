@@ -9,7 +9,7 @@
 
 // clang format off
 static constexpr uint32_t kShader[] = {
-    #include "shaders/americas_army_shader.vshinc"
+#include "shaders/americas_army_shader.vshinc"
 };
 // clang format on
 
@@ -32,9 +32,10 @@ void Americasarmyshader::Initialize() {
     auto prepare = [](const std::shared_ptr<VertexShaderProgram> &shader) {
       shader->SetUniformF(96, 0.1647059, 0.1647059, 0.1686275, 1.0);
       shader->SetUniformF(97, -728.0, -4058.0, 0.0, 0.0);
-      shader->SetUniformF(98, -0.055816, -0.9823595, -0.1789047, 62.6534042);
+
       shader->SetUniformF(121, 2.0, 2.0, 2.0, 1.0);
       shader->SetUniformF(135, 0.0, 0.5, 1.0, 3.0);
+      shader->SetUniformF(136, 0.9983897, -0.0101479, -0.0558118, 0.0);
       shader->SetUniformF(137, -0.0567268, -0.178603, -0.9822846, 0.0);
       shader->SetUniformF(138, 0.0, 0.9838689, -0.1788911, 0.0);
       shader->SetUniformF(139, 31.5401363, -20.6333656, 67.6486282, 1.0);
@@ -51,7 +52,6 @@ void Americasarmyshader::Initialize() {
     computations_.push_back({kShader, sizeof(kShader), prepare, &results_.back()});
   }
 }
-
 
 void Americasarmyshader::Test() {
   host_.SetDiffuse(0x1AFE326C);
