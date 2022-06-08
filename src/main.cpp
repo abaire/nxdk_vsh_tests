@@ -22,9 +22,10 @@
 #include "logger.h"
 #include "test_driver.h"
 #include "test_host.h"
-#include "tests/mac_mov_tests.h"
-#include "tests/mac_add_tests.h"
 #include "tests/americasarmyshader.h"
+#include "tests/ilu_rcp_tests.h"
+#include "tests/mac_add_tests.h"
+#include "tests/mac_mov_tests.h"
 
 #ifndef FALLBACK_OUTPUT_ROOT_PATH
 #define FALLBACK_OUTPUT_ROOT_PATH "e:\\";
@@ -258,6 +259,10 @@ static void register_suites(TestHost& host, std::vector<std::shared_ptr<TestSuit
   }
   {
     auto suite = std::make_shared<Americasarmyshader>(host, output_directory);
+    test_suites.push_back(suite);
+  }
+  {
+    auto suite = std::make_shared<IluRcpTests>(host, output_directory);
     test_suites.push_back(suite);
   }
 }

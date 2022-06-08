@@ -31,14 +31,16 @@ SRCS = \
 	$(SRCDIR)/tests/mac_mov_tests.cpp \
 	$(SRCDIR)/tests/test_suite.cpp \
 	$(SRCDIR)/tests/mac_add_tests.cpp \
-	$(SRCDIR)/tests/americasarmyshader.cpp
+	$(SRCDIR)/tests/americasarmyshader.cpp \
+	$(SRCDIR)/tests/ilu_rcp_tests.cpp
 
 NV2A_VSH_OBJS = \
 	$(SRCDIR)/shaders/clear_state.vshinc \
 	$(SRCDIR)/shaders/compute_footer.vshinc \
 	$(SRCDIR)/shaders/mac_mov.vshinc \
 	$(SRCDIR)/shaders/mac_add.vshinc \
-	$(SRCDIR)/shaders/americas_army_shader.vshinc
+	$(SRCDIR)/shaders/americas_army_shader.vshinc \
+	$(SRCDIR)/shaders/ilu_rcp.vshinc
 
 CFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR)
 CXXFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR) -DFPNG_NO_STDIO=1 -DFPNG_NO_SSE=1
