@@ -80,6 +80,7 @@ class _CLASSNAME_ : public TestSuite {
 
 
 _SHADER_TEMPLATE = """; Values from c[188], c[189], c[190], c[191] will be captured
+#input matrix4 96
 #output matrix4 188
 """
 
@@ -94,7 +95,7 @@ def _generate_shader(filename: str, force: bool = False):
         raise Exception(f"Shader already exists at {full_path}")
 
     with open(full_path, "w", encoding="ascii") as outfile:
-        print(f"; TODO: IMPLEMENT ME", file=outfile)
+        print(_SHADER_TEMPLATE, file=outfile)
 
 
 def _make_shader_variable_name(shader_filename: str) -> str:
