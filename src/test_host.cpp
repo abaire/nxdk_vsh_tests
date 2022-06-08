@@ -288,26 +288,31 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
 
   pb_print("%s\n", name.c_str());
 
-  auto print_vals = [](uint32_t index, const VECTOR vals) {
+  auto print_vals = [](uint32_t index, const VECTOR vals, const std::map<uint32_t, std::string> &labels) {
     // pbkit's handling of exceptional floats is not trustable.
     char buf[128] = {0};
-    snprintf_(buf, sizeof(buf), " [%d]:%f,%f,%f,%f\n", index, vals[0], vals[1], vals[2], vals[3]);
+    auto label = labels.find(index);
+    if (label == labels.end()) {
+      snprintf_(buf, sizeof(buf), " [%d]:%f,%f,%f,%f\n", index, vals[0], vals[1], vals[2], vals[3]);
+    } else {
+      snprintf_(buf, sizeof(buf), " %s%f,%f,%f,%f\n", label->second.c_str(), vals[0], vals[1], vals[2], vals[3]);
+    }
     pb_print("%s", buf);
   };
 
   for (auto &result : results) {
     pb_print("%s:\n", result.title.c_str());
     if (result.results_mask & RES_0) {
-      print_vals(0, result.c188);
+      print_vals(0, result.c188, result.result_labels);
     }
     if (result.results_mask & RES_1) {
-      print_vals(1, result.c189);
+      print_vals(1, result.c189, result.result_labels);
     }
     if (result.results_mask & RES_2) {
-      print_vals(2, result.c190);
+      print_vals(2, result.c190, result.result_labels);
     }
     if (result.results_mask & RES_3) {
-      print_vals(3, result.c191);
+      print_vals(3, result.c191, result.result_labels);
     }
   }
 

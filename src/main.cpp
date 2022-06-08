@@ -26,6 +26,7 @@
 #include "tests/ilu_rcp_tests.h"
 #include "tests/mac_add_tests.h"
 #include "tests/mac_mov_tests.h"
+#include "tests/paired_ilu_tests.h"
 
 #ifndef FALLBACK_OUTPUT_ROOT_PATH
 #define FALLBACK_OUTPUT_ROOT_PATH "e:\\";
@@ -263,6 +264,10 @@ static void register_suites(TestHost& host, std::vector<std::shared_ptr<TestSuit
   }
   {
     auto suite = std::make_shared<IluRcpTests>(host, output_directory);
+    test_suites.push_back(suite);
+  }
+  {
+    auto suite = std::make_shared<PairedIluTests>(host, output_directory);
     test_suites.push_back(suite);
   }
 }

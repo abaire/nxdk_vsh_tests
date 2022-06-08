@@ -4,8 +4,10 @@
 #include <pbkit/pbkit.h>
 
 #include <cstdint>
-#include <memory>
 #include <list>
+#include <map>
+#include <memory>
+#include <string>
 #include <utility>
 
 #include "math3d.h"
@@ -27,7 +29,7 @@ constexpr int32_t kNextContextChannel = 25;
 
 constexpr uint32_t kNoStrideOverride = 0xFFFFFFFF;
 
-#define ABGR(x) (((x) & 0xFF00FF00) | (((x) & 0xFF) << 16) | (((x) & 0x00FF0000) >> 16))
+#define ABGR(x) (((x)&0xFF00FF00) | (((x)&0xFF) << 16) | (((x)&0x00FF0000) >> 16))
 
 #define SET_MASK(mask, val) (((val) << (__builtin_ffs(mask) - 1)) & (mask))
 
@@ -48,14 +50,18 @@ class TestHost {
     VECTOR c190{0.0f, 0.0f, 0.0f, 0.0f};
     VECTOR c191{0.0f, 0.0f, 0.0f, 0.0f};
 
-    explicit Results(std::string title, uint32_t results_mask = RES_0) : title(std::move(title)), results_mask(results_mask) {}
+    std::map<uint32_t, std::string> result_labels;
+
+    explicit Results(std::string title, uint32_t results_mask = RES_0,
+                     std::map<uint32_t, std::string> result_labels = {})
+        : title(std::move(title)), results_mask(results_mask), result_labels(std::move(result_labels)) {}
   };
 
   struct Computation {
     const uint32_t *shader_code{nullptr};
     uint32_t shader_size{0};
 
-    std::function<void(const std::shared_ptr<VertexShaderProgram>&)> prepare;
+    std::function<void(const std::shared_ptr<VertexShaderProgram> &)> prepare;
 
     Results *results;
   };
@@ -186,10 +192,11 @@ class TestHost {
   TestHost();
   ~TestHost();
 
-  static void NullPrepare(const std::shared_ptr<VertexShaderProgram> &) {};
+  static void NullPrepare(const std::shared_ptr<VertexShaderProgram> &){};
 
   void Compute(const std::list<Computation> &computations);
-  void DrawResults(const std::list<Results> &results, bool allow_saving, const std::string &output_directory, const std::string &name);
+  void DrawResults(const std::list<Results> &results, bool allow_saving, const std::string &output_directory,
+                   const std::string &name);
 
   void SetVertexShaderProgram(std::shared_ptr<VertexShaderProgram> program);
   std::shared_ptr<VertexShaderProgram> GetShaderProgram() const { return vertex_shader_program_; }
@@ -332,7 +339,8 @@ class TestHost {
   void SetFinalCombinerFactorC1(uint32_t value) const;
   void SetFinalCombinerFactorC1(float red, float green, float blue, float alpha) const;
 
-  static std::string PrepareSaveFile(std::string output_directory, const std::string &filename, const std::string &ext = ".png");
+  static std::string PrepareSaveFile(std::string output_directory, const std::string &filename,
+                                     const std::string &ext = ".png");
   uint32_t MakeInputCombiner(CombinerSource a_source, bool a_alpha, CombinerMapping a_mapping, CombinerSource b_source,
                              bool b_alpha, CombinerMapping b_mapping, CombinerSource c_source, bool c_alpha,
                              CombinerMapping c_mapping, CombinerSource d_source, bool d_alpha,
