@@ -93,7 +93,7 @@ ifeq ($(ENABLE_PROGRESS_LOG),y)
 CXXFLAGS += -DENABLE_PROGRESS_LOG
 endif
 
-CLEANRULES = clean-resources clean-optimized clean-nv2a-vsh-objs
+CLEANRULES = clean-optimized clean-nv2a-vsh-objs
 include $(NXDK_DIR)/Makefile
 
 PBKIT_DEBUG ?= n
@@ -153,21 +153,6 @@ clean-optimized:
 	$(VE)rm -f optimized.lib $(OPTIMIZED_OBJS)
 
 main.exe: optimized.lib
-
-RESOURCE_FILES = $(shell find $(RESOURCEDIR)/ -type f)
-RESOURCES = \
-	$(patsubst $(RESOURCEDIR)/%,$(OUTPUT_DIR)/%,$(RESOURCE_FILES))
-
-TARGET += $(RESOURCES)
-$(GEN_XISO): $(RESOURCES)
-
-$(OUTPUT_DIR)/%: $(RESOURCEDIR)/%
-	$(VE)mkdir -p '$(dir $@)'
-	$(VE)cp -r '$<' '$@'
-
-.PHONY: clean-resources
-clean-resources:
-	$(VE)rm -rf $(patsubst $(RESOURCEDIR)/%,$(OUTPUT_DIR)/%,$(RESOURCES))
 
 # nv2avsh assembler rules:
 $(SRCS): $(NV2A_VSH_OBJS)
