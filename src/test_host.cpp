@@ -359,13 +359,14 @@ void TestHost::SaveBackBuffer(const std::string &output_directory, const std::st
   // FIXME: Support 16bpp surfaces
   ASSERT((pitch == width * 4) && "Expected packed 32bpp surface");
 
-  // Swizzle color channels ARGB -> ABGR
+  // Swizzle color channels ARGB -> OBGR
   unsigned int num_pixels = width * height;
   uint32_t *pre_enc_buf = (uint32_t *)malloc(num_pixels * 4);
   ASSERT(pre_enc_buf && "Failed to allocate pre-encode buffer");
+  uint32_t full_alpha = 0xFF000000;
   for (unsigned int i = 0; i < num_pixels; i++) {
     uint32_t c = static_cast<uint32_t *>(buffer)[i];
-    pre_enc_buf[i] = (c & 0xff00ff00) | ((c >> 16) & 0xff) | ((c & 0xff) << 16);
+    pre_enc_buf[i] = (c & 0xff00ff00) | ((c >> 16) & 0xff) | ((c & 0xff) << 16) | full_alpha;
   }
 
   std::vector<uint8_t> out_buf;
