@@ -6,6 +6,7 @@
 // clang format on
 
 #include <fpng/src/fpng.h>
+#include <printf/printf.h>
 #include <strings.h>
 #include <windows.h>
 
@@ -68,13 +69,11 @@ static void SetSurfaceFormat() {
   p = pb_push1(p, NV097_SET_BLEND_FUNC_SFACTOR, NV097_SET_BLEND_FUNC_SFACTOR_V_SRC_ALPHA);
   p = pb_push1(p, NV097_SET_BLEND_FUNC_DFACTOR, NV097_SET_BLEND_FUNC_DFACTOR_V_ZERO);
 
-  p = pb_push1(
-      p, NV097_SET_SHADER_STAGE_PROGRAM,
-      MASK(NV097_SET_SHADER_STAGE_PROGRAM_STAGE0, 0) | MASK(NV097_SET_SHADER_STAGE_PROGRAM_STAGE1, 0) |
-          MASK(NV097_SET_SHADER_STAGE_PROGRAM_STAGE2, 0) | MASK(NV097_SET_SHADER_STAGE_PROGRAM_STAGE3, 0));
+  p = pb_push1(p, NV097_SET_SHADER_STAGE_PROGRAM,
+               MASK(NV097_SET_SHADER_STAGE_PROGRAM_STAGE0, 0) | MASK(NV097_SET_SHADER_STAGE_PROGRAM_STAGE1, 0) |
+                   MASK(NV097_SET_SHADER_STAGE_PROGRAM_STAGE2, 0) | MASK(NV097_SET_SHADER_STAGE_PROGRAM_STAGE3, 0));
   p = pb_push1(p, NV097_SET_SHADER_OTHER_STAGE_INPUT,
-               MASK(NV097_SET_SHADER_OTHER_STAGE_INPUT_STAGE1, 0) |
-                   MASK(NV097_SET_SHADER_OTHER_STAGE_INPUT_STAGE2, 0) |
+               MASK(NV097_SET_SHADER_OTHER_STAGE_INPUT_STAGE1, 0) | MASK(NV097_SET_SHADER_OTHER_STAGE_INPUT_STAGE2, 0) |
                    MASK(NV097_SET_SHADER_OTHER_STAGE_INPUT_STAGE3, 0));
 
   {
@@ -145,7 +144,6 @@ TestHost::~TestHost() {
   }
 }
 
-
 void TestHost::ClearDepthStencilRegion(uint32_t depth_value, uint8_t stencil_value, uint32_t left, uint32_t top,
                                        uint32_t width, uint32_t height) const {
   if (!width || width > kFramebufferWidth) {
@@ -155,7 +153,8 @@ void TestHost::ClearDepthStencilRegion(uint32_t depth_value, uint8_t stencil_val
     height = kFramebufferHeight;
   }
 
-  set_depth_stencil_buffer_region(NV097_SET_SURFACE_FORMAT_ZETA_Z24S8, depth_value, stencil_value, left, top, width, height);
+  set_depth_stencil_buffer_region(NV097_SET_SURFACE_FORMAT_ZETA_Z24S8, depth_value, stencil_value, left, top, width,
+                                  height);
 }
 
 void TestHost::ClearColorRegion(uint32_t argb, uint32_t left, uint32_t top, uint32_t width, uint32_t height) const {
@@ -202,8 +201,8 @@ static void __attribute__((optimize("O0"))) fetch_constants(float *buffer) {
   // https://github.com/XboxDev/nv2a-trace/blob/65bdd2369a5b216cfc47c9545f870c49d118276b/Trace.py#L58
   static constexpr uint32_t VP_CONSTANTS_BASE = 0x170000;
 
-  auto index = reinterpret_cast<uint32_t*>(NV10_PGRAPH_RDI_INDEX);
-  volatile auto data = reinterpret_cast<float*>(NV10_PGRAPH_RDI_DATA);
+  auto index = reinterpret_cast<uint32_t *>(NV10_PGRAPH_RDI_INDEX);
+  volatile auto data = reinterpret_cast<float *>(NV10_PGRAPH_RDI_DATA);
 
   *index = VP_CONSTANTS_BASE;
 
@@ -223,7 +222,8 @@ void TestHost::Compute(const std::list<Computation> &computations) {
     test.prepare(shader);
     shader->PrepareDraw();
 
-    while (pb_busy()) {}
+    while (pb_busy()) {
+    }
 
     float left = 0.0f;
     float top = 0.0f;
@@ -245,16 +245,20 @@ void TestHost::Compute(const std::list<Computation> &computations) {
     SetVertex(left, top + kPatchSize, 0.0, 1.0);
     End();
 
-    while (pb_busy()) {}
+    while (pb_busy()) {
+    }
 
     fetch_constants(constants_);
-#define GET_CONSTANT(var, idx) do { \
-    auto base = constants_ + ((idx)*4);                                \
-    var[3] = *base++;                                 \
-    var[2] = *base++;                                 \
-    var[1] = *base++;                                 \
-    var[0] = *base++;               \
-    } while(0)
+#define GET_CONSTANT(var, idx)                                                                           \
+  do {                                                                                                   \
+    auto base = constants_ + ((idx)*4);                                                                  \
+    var[3] = *base++;                                                                                    \
+    var[2] = *base++;                                                                                    \
+    var[1] = *base++;                                                                                    \
+    var[0] = *base++;                                                                                    \
+    PrintMsg("c[%d]: 0x%X (%f), 0x%X (%f), 0x%X (%f), 0x%X (%f)\n", (idx), *(uint32_t *)&var[0], var[0], \
+             *(uint32_t *)&var[1], var[1], *(uint32_t *)&var[2], var[2], *(uint32_t *)&var[3], var[3]);  \
+  } while (0)
 
     if (test.results->results_mask & RES_0) {
       GET_CONSTANT(test.results->c188, 188);
@@ -285,7 +289,10 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
   pb_print("%s\n", name.c_str());
 
   auto print_vals = [](uint32_t index, const VECTOR vals) {
-    pb_print(" [%d]:%f,%f,%f,%f\n", index, vals[0], vals[1], vals[2], vals[3]);
+    // pbkit's handling of exceptional floats is not trustable.
+    char buf[128] = {0};
+    snprintf_(buf, sizeof(buf), " [%d]:%f,%f,%f,%f\n", index, vals[0], vals[1], vals[2], vals[3]);
+    pb_print("%s", buf);
   };
 
   for (auto &result : results) {
@@ -320,7 +327,8 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
     SaveBackBuffer(output_directory, name);
   }
 
-  while (pb_finished()) {}
+  while (pb_finished()) {
+  }
 }
 
 std::shared_ptr<VertexShaderProgram> TestHost::PrepareCalculation(const uint32_t *shader_code, uint32_t shader_size) {
@@ -965,9 +973,10 @@ void TestHost::ClearState() {
   SetVertexShaderProgram(current_shader);
 
   SetInputColorCombiner(0, TestHost::ColorInput(TestHost::SRC_R0), TestHost::OneInput(),
-                              TestHost::ColorInput(TestHost::SRC_R1), TestHost::OneInput());
+                        TestHost::ColorInput(TestHost::SRC_R1), TestHost::OneInput());
   SetOutputColorCombiner(0, TestHost::DST_R0, TestHost::DST_R1);
 
-  SetInputAlphaCombiner(0, TestHost::AlphaInput(TestHost::SRC_R0), TestHost::OneInput(), TestHost::AlphaInput(TestHost::SRC_R1), TestHost::OneInput());
+  SetInputAlphaCombiner(0, TestHost::AlphaInput(TestHost::SRC_R0), TestHost::OneInput(),
+                        TestHost::AlphaInput(TestHost::SRC_R1), TestHost::OneInput());
   SetOutputAlphaCombiner(0, TestHost::DST_R0, TestHost::DST_R1);
 }
