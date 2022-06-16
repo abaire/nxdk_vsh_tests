@@ -29,14 +29,18 @@ static const uint32_t kComputeFooter[] = {
 };
 // clang format on
 
-static constexpr uint32_t NV10_PGRAPH_RDI_INDEX = 0xFD400750;
-static constexpr uint32_t NV10_PGRAPH_RDI_DATA = 0xFD400754;
-
 #define TO_BGRA(float_vals)                                                                      \
   (((uint32_t)((float_vals)[3] * 255.0f) << 24) + ((uint32_t)((float_vals)[0] * 255.0f) << 16) + \
    ((uint32_t)((float_vals)[1] * 255.0f) << 8) + ((uint32_t)((float_vals)[2] * 255.0f)))
 
 #define MAX_FILE_PATH_SIZE 248
+
+#define GET_CONSTANT(var, idx)                                                                                      \
+  do {                                                                                                              \
+    fetch_constant(var, idx);                                                                                       \
+    PrintMsg("c[%d]: 0x%X (%f), 0x%X (%f), 0x%X (%f), 0x%X (%f)\n", (idx), *(uint32_t *)&(var)[0], (var)[0],        \
+             *(uint32_t *)&(var)[1], (var)[1], *(uint32_t *)&(var)[2], (var)[2], *(uint32_t *)&(var)[3], (var)[3]); \
+  } while (0)
 
 // From pbkit.c, DMA_A is set to channel 3 by default
 // NV097_SET_CONTEXT_DMA_A == NV20_TCL_PRIMITIVE_3D_SET_OBJECT1
@@ -173,44 +177,17 @@ void TestHost::Clear(uint32_t argb, uint32_t depth_value, uint8_t stencil_value)
   pb_erase_text_screen();
 }
 
-#if 0
-// TODO: This seems to work the first time its called, but if called immediately after with another index, it will
-// return the 4th component of the first result as the first component.
-static void __attribute__((optimize("O0"))) fetch_constant(VECTOR output, uint32_t offset = 96) {
+static void __attribute__((optimize("O0"))) fetch_constant(float *buffer, uint32_t index) {
+  pb_wait_until_gr_not_busy();
 
   // See RDI dumping code in nv2a-trace.
   // https://github.com/XboxDev/nv2a-trace/blob/65bdd2369a5b216cfc47c9545f870c49d118276b/Trace.py#L58
   static constexpr uint32_t VP_CONSTANTS_BASE = 0x170000;
 
-  auto index = reinterpret_cast<uint32_t*>(NV10_PGRAPH_RDI_INDEX);
-  volatile auto data = reinterpret_cast<float*>(NV10_PGRAPH_RDI_DATA);
-
-  // Each entry is 4 floats (16 bytes)
-  *index = VP_CONSTANTS_BASE + (offset * 16);
-
-  // Values appear to be retrieved in inverse order.
-  output[3] = *data;
-  output[2] = *data;
-  output[1] = *data;
-  output[0] = *data;
-}
-#endif
-
-static void __attribute__((optimize("O0"))) fetch_constants(float *buffer) {
-  // See RDI dumping code in nv2a-trace.
-  // https://github.com/XboxDev/nv2a-trace/blob/65bdd2369a5b216cfc47c9545f870c49d118276b/Trace.py#L58
-  static constexpr uint32_t VP_CONSTANTS_BASE = 0x170000;
-
-  auto index = reinterpret_cast<uint32_t *>(NV10_PGRAPH_RDI_INDEX);
-  volatile auto data = reinterpret_cast<float *>(NV10_PGRAPH_RDI_DATA);
-
-  *index = VP_CONSTANTS_BASE;
-
-  for (uint32_t offset = 0; offset < 192; ++offset) {
-    *buffer++ = *data;
-    *buffer++ = *data;
-    *buffer++ = *data;
-    *buffer++ = *data;
+  VIDEOREG(NV_PGRAPH_RDI_INDEX) = VP_CONSTANTS_BASE + index * 16;
+  for (uint32_t component = 0; component < 4; ++component) {
+    auto value = VIDEOREG(NV_PGRAPH_RDI_DATA);
+    buffer[3 - component] = *(float *)&value;
   }
 }
 
@@ -245,20 +222,15 @@ void TestHost::Compute(const std::list<Computation> &computations) {
     SetVertex(left, top + kPatchSize, 0.0, 1.0);
     End();
 
+    auto p = pb_begin();
+    // Force inputs to be reloaded, may not be necessary for immediate mode commands.
+    p = pb_push1(p, NV097_BREAK_VERTEX_BUFFER_CACHE, 0);
+    p = pb_push1(p, NV097_NO_OPERATION, 0);
+    p = pb_push1(p, NV097_WAIT_FOR_IDLE, 0);
+    pb_end(p);
+
     while (pb_busy()) {
     }
-
-    fetch_constants(constants_);
-#define GET_CONSTANT(var, idx)                                                                           \
-  do {                                                                                                   \
-    auto base = constants_ + ((idx)*4);                                                                  \
-    var[3] = *base++;                                                                                    \
-    var[2] = *base++;                                                                                    \
-    var[1] = *base++;                                                                                    \
-    var[0] = *base++;                                                                                    \
-    PrintMsg("c[%d]: 0x%X (%f), 0x%X (%f), 0x%X (%f), 0x%X (%f)\n", (idx), *(uint32_t *)&var[0], var[0], \
-             *(uint32_t *)&var[1], var[1], *(uint32_t *)&var[2], var[2], *(uint32_t *)&var[3], var[3]);  \
-  } while (0)
 
     if (test.results->results_mask & RES_0) {
       GET_CONSTANT(test.results->c188, 188);
@@ -272,7 +244,48 @@ void TestHost::Compute(const std::list<Computation> &computations) {
     if (test.results->results_mask & RES_3) {
       GET_CONSTANT(test.results->c191, 191);
     }
-#undef GET_CONSTANT
+  }
+}
+
+void TestHost::ComputeWithVertexBuffer(const std::list<Computation> &computations) {
+  for (auto &comp : computations) {
+    PrintMsg("Prepare calc in ComputeWithVertexBuffer\n");
+    auto shader = PrepareCalculation(comp.shader_code, comp.shader_size);
+    comp.prepare(shader);
+    shader->PrepareDraw();
+
+    while (pb_busy()) {
+    }
+
+    auto p = pb_begin();
+    p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_QUADS);
+    p = pb_push1(p, NV2A_SUPPRESS_COMMAND_INCREMENT(NV097_DRAW_ARRAYS),
+                 MASK(NV097_DRAW_ARRAYS_COUNT, 3) | MASK(NV097_DRAW_ARRAYS_START_INDEX, 0));
+    p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
+
+    // Force inputs to be reloaded.
+    p = pb_push1(p, NV097_BREAK_VERTEX_BUFFER_CACHE, 0);
+
+    // Stall for output.
+    p = pb_push1(p, NV097_NO_OPERATION, 0);
+    p = pb_push1(p, NV097_WAIT_FOR_IDLE, 0);
+    pb_end(p);
+
+    while (pb_busy()) {
+    }
+
+    if (comp.results->results_mask & RES_0) {
+      GET_CONSTANT(comp.results->c188, 188);
+    }
+    if (comp.results->results_mask & RES_1) {
+      GET_CONSTANT(comp.results->c189, 189);
+    }
+    if (comp.results->results_mask & RES_2) {
+      GET_CONSTANT(comp.results->c190, 190);
+    }
+    if (comp.results->results_mask & RES_3) {
+      GET_CONSTANT(comp.results->c191, 191);
+    }
   }
 }
 

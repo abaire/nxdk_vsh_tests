@@ -33,7 +33,8 @@ SRCS = \
 	$(SRCDIR)/tests/mac_add_tests.cpp \
 	$(SRCDIR)/tests/americasarmyshader.cpp \
 	$(SRCDIR)/tests/ilu_rcp_tests.cpp \
-	$(SRCDIR)/tests/paired_ilu_tests.cpp
+	$(SRCDIR)/tests/paired_ilu_tests.cpp \
+	$(SRCDIR)/tests/vertex_data_array_format_tests.cpp
 
 NV2A_VSH_OBJS = \
 	$(SRCDIR)/shaders/clear_state.vshinc \
@@ -42,7 +43,8 @@ NV2A_VSH_OBJS = \
 	$(SRCDIR)/shaders/mac_add.vshinc \
 	$(SRCDIR)/shaders/americas_army_shader.vshinc \
 	$(SRCDIR)/shaders/ilu_rcp.vshinc \
-	$(SRCDIR)/shaders/paired_ilu_non_r1_temp_out.vshinc
+	$(SRCDIR)/shaders/paired_ilu_non_r1_temp_out.vshinc \
+	$(SRCDIR)/shaders/vertex_data_array_format_passthrough.vshinc
 
 CFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR)
 CXXFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR) -DFPNG_NO_STDIO=1 -DFPNG_NO_SSE=1
