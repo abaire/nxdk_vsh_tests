@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "math3d.h"
 #include "nxdk_ext.h"
@@ -31,6 +32,7 @@ constexpr uint32_t kNoStrideOverride = 0xFFFFFFFF;
 
 #define ABGR(x) (((x)&0xFF00FF00) | (((x)&0xFF) << 16) | (((x)&0x00FF0000) >> 16))
 
+#define VRAM_ADDR(x) (reinterpret_cast<uint32_t>(x) & 0x03FFFFFF)
 #define SET_MASK(mask, val) (((val) << (__builtin_ffs(mask) - 1)) & (mask))
 
 // Defines which fields in a TestHost::Results should be displayed.
@@ -198,6 +200,10 @@ class TestHost {
   void DrawResults(const std::list<Results> &results, bool allow_saving, const std::string &output_directory,
                    const std::string &name);
 
+  // Run a computation whose inputs have already been specified via NV097_SET_VERTEX_DATA_ARRAY_FORMAT. The vertices
+  // are assumed to be a single quad in clockwise order (indices 0, 1, 2, 3 will be used).
+  void ComputeWithVertexBuffer(const std::list<Computation> &computations);
+
   void SetVertexShaderProgram(std::shared_ptr<VertexShaderProgram> program);
   std::shared_ptr<VertexShaderProgram> GetShaderProgram() const { return vertex_shader_program_; }
 
@@ -355,9 +361,6 @@ class TestHost {
   uint8_t *compute_buffer_{nullptr};
   uint32_t *shader_code_{nullptr};
   uint32_t shader_code_size_{0};
-
-  // The vsh constants, fetched via RDI.
-  float constants_[192 * 4]{0.0f};
 };
 
 #endif  // NXDK_PGRAPH_TESTS_TEST_HOST_H
