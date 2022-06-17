@@ -361,6 +361,8 @@ class TestHost {
   uint8_t *compute_buffer_{nullptr};
   uint32_t *shader_code_{nullptr};
   uint32_t shader_code_size_{0};
+
+  float *vertex_buffer_{nullptr};
 };
 
 #endif  // NXDK_PGRAPH_TESTS_TEST_HOST_H

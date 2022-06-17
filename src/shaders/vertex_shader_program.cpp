@@ -77,7 +77,8 @@ void VertexShaderProgram::UploadConstants() {
 
     if (++depth > 16) {
       pb_end(p);
-      while (pb_busy()) ;
+      while (pb_busy())
+        ;
       depth = 0;
       p = pb_begin();
     }
@@ -95,10 +96,19 @@ void VertexShaderProgram::SetUniform4F(uint32_t slot, const float *value) {
   SetUniformBlock(slot, reinterpret_cast<const uint32_t *>(value), 1);
 }
 
-void VertexShaderProgram::SetUniform4I(uint32_t slot, const uint32_t *value) { SetUniformBlock(slot, value, 1); }
+void VertexShaderProgram::SetUniform4UI(uint32_t slot, const uint32_t *value) { SetUniformBlock(slot, value, 1); }
 
-void VertexShaderProgram::SetUniformI(uint32_t slot, uint32_t x, uint32_t y, uint32_t z, uint32_t w) {
+void VertexShaderProgram::SetUniformUI(uint32_t slot, uint32_t x, uint32_t y, uint32_t z, uint32_t w) {
   const uint32_t vector[] = {x, y, z, w};
+  SetUniform4UI(slot, vector);
+}
+
+void VertexShaderProgram::SetUniform4I(uint32_t slot, const int32_t *value) {
+  SetUniformBlock(slot, reinterpret_cast<const uint32_t *>(value), 1);
+}
+
+void VertexShaderProgram::SetUniformI(uint32_t slot, int32_t x, int32_t y, int32_t z, int32_t w) {
+  const int32_t vector[] = {x, y, z, w};
   SetUniform4I(slot, vector);
 }
 

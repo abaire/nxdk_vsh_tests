@@ -28,6 +28,5 @@ class VertexDataArrayFormatTests : public TestSuite {
   void TestS32K();
 
  private:
-  float *vertex_buffer_{nullptr};
   void *attribute_buffer_{nullptr};
 };

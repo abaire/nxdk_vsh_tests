@@ -139,12 +139,50 @@ TestHost::TestHost() {
   compute_buffer_ = static_cast<uint8_t *>(
       MmAllocateContiguousMemoryEx(buffer_size, 0, MAXRAM, 0, PAGE_WRITECOMBINE | PAGE_READWRITE));
   ASSERT(compute_buffer_ && "Failed to allocate compute buffer.");
+
+  // Allocate a quad for calculations that choose to use data arrays.
+  {
+    constexpr uint32_t kVertexSize = 4 * sizeof(float);
+    vertex_buffer_ = reinterpret_cast<float *>(
+        MmAllocateContiguousMemoryEx(4 * kVertexSize, 0, MAXRAM, 0, PAGE_WRITECOMBINE | PAGE_READWRITE));
+    uint32_t i = 0;
+    vertex_buffer_[i++] = 0.0f;
+    vertex_buffer_[i++] = 0.0f;
+    vertex_buffer_[i++] = 1.0f;
+    vertex_buffer_[i++] = 1.0f;
+
+    vertex_buffer_[i++] = 10.0f;
+    vertex_buffer_[i++] = 0.0f;
+    vertex_buffer_[i++] = 1.0f;
+    vertex_buffer_[i++] = 1.0f;
+
+    vertex_buffer_[i++] = 10.0f;
+    vertex_buffer_[i++] = 10.0f;
+    vertex_buffer_[i++] = 1.0f;
+    vertex_buffer_[i++] = 1.0f;
+
+    vertex_buffer_[i++] = 0.0f;
+    vertex_buffer_[i++] = 10.0f;
+    vertex_buffer_[i++] = 1.0f;
+    vertex_buffer_[i++] = 1.0f;
+
+    auto p = pb_begin();
+    p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,
+                 MASK(NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F) |
+                     MASK(NV097_SET_VERTEX_DATA_ARRAY_FORMAT_SIZE, 4) |
+                     MASK(NV097_SET_VERTEX_DATA_ARRAY_FORMAT_STRIDE, 16));
+    p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_OFFSET, VRAM_ADDR(vertex_buffer_));
+    pb_end(p);
+  }
 }
 
 TestHost::~TestHost() {
   delete[] shader_code_;
   if (compute_buffer_) {
     MmFreeContiguousMemory(compute_buffer_);
+  }
+  if (vertex_buffer_) {
+    MmFreeContiguousMemory(vertex_buffer_);
   }
 }
 
@@ -258,13 +296,13 @@ void TestHost::ComputeWithVertexBuffer(const std::list<Computation> &computation
     }
 
     auto p = pb_begin();
+    // Force inputs to be reloaded.
+    p = pb_push1(p, NV097_BREAK_VERTEX_BUFFER_CACHE, 0);
+
     p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_QUADS);
     p = pb_push1(p, NV2A_SUPPRESS_COMMAND_INCREMENT(NV097_DRAW_ARRAYS),
                  MASK(NV097_DRAW_ARRAYS_COUNT, 3) | MASK(NV097_DRAW_ARRAYS_START_INDEX, 0));
     p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
-
-    // Force inputs to be reloaded.
-    p = pb_push1(p, NV097_BREAK_VERTEX_BUFFER_CACHE, 0);
 
     // Stall for output.
     p = pb_push1(p, NV097_NO_OPERATION, 0);

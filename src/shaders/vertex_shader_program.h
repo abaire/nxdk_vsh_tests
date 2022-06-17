@@ -21,10 +21,12 @@ class VertexShaderProgram {
 
   void SetUniform4x4F(uint32_t slot, const float *value);
   void SetUniform4F(uint32_t slot, const float *value);
-  void SetUniform4I(uint32_t slot, const uint32_t *value);
+  void SetUniform4UI(uint32_t slot, const uint32_t *value);
+  void SetUniform4I(uint32_t slot, const int32_t *value);
 
   void SetUniformF(uint32_t slot, float x, float y = 0.0f, float z = 0.0f, float w = 0.0f);
-  void SetUniformI(uint32_t slot, uint32_t x, uint32_t y = 0, uint32_t z = 0, uint32_t w = 0);
+  void SetUniformUI(uint32_t slot, uint32_t x, uint32_t y = 0, uint32_t z = 0, uint32_t w = 0);
+  void SetUniformI(uint32_t slot, int32_t x, int32_t y = 0, int32_t z = 0, int32_t w = 0);
 
  protected:
   virtual void OnActivate() {}

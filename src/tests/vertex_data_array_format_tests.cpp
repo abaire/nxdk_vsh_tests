@@ -26,40 +26,6 @@ VertexDataArrayFormatTests::VertexDataArrayFormatTests(TestHost& host, std::stri
 
 void VertexDataArrayFormatTests::Initialize() {
   TestSuite::Initialize();
-  {
-    constexpr uint32_t kVertexSize = 4 * sizeof(float);
-    vertex_buffer_ = reinterpret_cast<float*>(
-        MmAllocateContiguousMemoryEx(4 * kVertexSize, 0, MAXRAM, 0, PAGE_WRITECOMBINE | PAGE_READWRITE));
-    uint32_t i = 0;
-    vertex_buffer_[i++] = 0.0f;
-    vertex_buffer_[i++] = 0.0f;
-    vertex_buffer_[i++] = 1.0f;
-    vertex_buffer_[i++] = 1.0f;
-
-    vertex_buffer_[i++] = 10.0f;
-    vertex_buffer_[i++] = 0.0f;
-    vertex_buffer_[i++] = 1.0f;
-    vertex_buffer_[i++] = 1.0f;
-
-    vertex_buffer_[i++] = 10.0f;
-    vertex_buffer_[i++] = 10.0f;
-    vertex_buffer_[i++] = 1.0f;
-    vertex_buffer_[i++] = 1.0f;
-
-    vertex_buffer_[i++] = 0.0f;
-    vertex_buffer_[i++] = 10.0f;
-    vertex_buffer_[i++] = 1.0f;
-    vertex_buffer_[i++] = 1.0f;
-
-    auto p = pb_begin();
-    p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,
-                 MASK(NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F) |
-                     MASK(NV097_SET_VERTEX_DATA_ARRAY_FORMAT_SIZE, 4) |
-                     MASK(NV097_SET_VERTEX_DATA_ARRAY_FORMAT_STRIDE, 16));
-    p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_OFFSET, VRAM_ADDR(vertex_buffer_));
-    pb_end(p);
-  }
-
   constexpr uint32_t kMaxAttributeSize = 4 * sizeof(float);
   attribute_buffer_ =
       MmAllocateContiguousMemoryEx(4 * kMaxAttributeSize, 0, MAXRAM, 0, PAGE_WRITECOMBINE | PAGE_READWRITE);
@@ -67,10 +33,6 @@ void VertexDataArrayFormatTests::Initialize() {
 
 void VertexDataArrayFormatTests::Deinitialize() {
   TestSuite::Deinitialize();
-  if (vertex_buffer_) {
-    MmFreeContiguousMemory(vertex_buffer_);
-    vertex_buffer_ = nullptr;
-  }
   if (attribute_buffer_) {
     MmFreeContiguousMemory(attribute_buffer_);
     attribute_buffer_ = nullptr;

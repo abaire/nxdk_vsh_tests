@@ -27,6 +27,7 @@
 #include "tests/mac_add_tests.h"
 #include "tests/mac_mov_tests.h"
 #include "tests/paired_ilu_tests.h"
+#include "tests/spyvsspymenu.h"
 #include "tests/vertex_data_array_format_tests.h"
 
 #ifndef FALLBACK_OUTPUT_ROOT_PATH
@@ -273,6 +274,10 @@ static void register_suites(TestHost& host, std::vector<std::shared_ptr<TestSuit
   }
   {
     auto suite = std::make_shared<VertexDataArrayFormatTests>(host, output_directory);
+    test_suites.push_back(suite);
+  }
+  {
+    auto suite = std::make_shared<Spyvsspymenu>(host, output_directory);
     test_suites.push_back(suite);
   }
 }
