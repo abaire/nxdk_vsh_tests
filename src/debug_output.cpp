@@ -16,6 +16,6 @@ void PrintAssertAndWaitForever(const char *assert_code, const char *filename, ui
   debugPrint("\nHalted, please reboot.\n");
   pb_show_debug_screen();
   while (1) {
-    Sleep(2000);
+    Sleep(200);
   }
 }

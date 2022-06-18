@@ -4,4 +4,5 @@
 
 mov r0, #input[0]
 mov r1, #input[1]
-add #output[0], r0, r1
+mov r2, #input[2]
+mad #output[0], r0, r1, r2

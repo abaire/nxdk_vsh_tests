@@ -2,6 +2,4 @@
 #input matrix4 96
 #output matrix4 188
 
-mov r0, #input[0]
-mov r1, #input[1]
-add #output[0], r0, r1
+lit #output[0], #input[0]

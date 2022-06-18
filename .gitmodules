@@ -7,3 +7,6 @@
 [submodule "third_party/fpng"]
 	path = third_party/fpng
 	url = https://github.com/richgel999/fpng
+[submodule "third_party/nv2a_vsh_cpu"]
+	path = third_party/nv2a_vsh_cpu
+	url = https://github.com/abaire/nv2a_vsh_cpu.git

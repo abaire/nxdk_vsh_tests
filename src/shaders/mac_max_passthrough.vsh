@@ -4,4 +4,4 @@
 
 mov r0, #input[0]
 mov r1, #input[1]
-add #output[0], r0, r1
+max #output[0], r0, r1

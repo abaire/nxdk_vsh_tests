@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "SDL_stdinc.h"
+#include "SDL_test_fuzzer.h"
 #include "debug_output.h"
 #include "logger.h"
 #include "pbkit_ext.h"
@@ -50,9 +52,7 @@ void TestSuite::RunAll() {
   }
 }
 
-void TestSuite::Initialize() {
-  host_.ClearState();
-}
+void TestSuite::Initialize() { host_.ClearState(); }
 
 std::chrono::steady_clock::time_point TestSuite::LogTestStart(const std::string& test_name) {
   PrintMsg("Starting %s::%s\n", suite_name_.c_str(), test_name.c_str());
@@ -66,7 +66,7 @@ std::chrono::steady_clock::time_point TestSuite::LogTestStart(const std::string&
   return std::chrono::high_resolution_clock::now();
 }
 
-void TestSuite::LogTestEnd(const std::string& test_name, std::chrono::steady_clock::time_point start_time) {
+void TestSuite::LogTestEnd(const std::string& test_name, std::chrono::steady_clock::time_point start_time) const {
   auto now = std::chrono::high_resolution_clock::now();
   auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time).count();
 
@@ -77,4 +77,16 @@ void TestSuite::LogTestEnd(const std::string& test_name, std::chrono::steady_clo
     Logger::Log() << "  Completed " << test_name << " " << elapsed << "ms" << std::endl;
   }
 #endif
+}
+
+float TestSuite::RandomFloat() {
+  uint32_t val = SDLTest_RandomUint32();
+  return *(float*)&val;
+}
+
+void TestSuite::RandomVector(VECTOR out) {
+  out[0] = RandomFloat();
+  out[1] = RandomFloat();
+  out[2] = RandomFloat();
+  out[3] = RandomFloat();
 }
