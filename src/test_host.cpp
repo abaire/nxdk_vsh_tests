@@ -18,6 +18,7 @@
 #include "pbkit_ext.h"
 #include "pgraph_diff_token.h"
 #include "shaders/vertex_shader_program.h"
+#include "text_overlay.h"
 
 // clang format off
 static const uint32_t kClearStateShader[] = {
@@ -213,6 +214,7 @@ void TestHost::Clear(uint32_t argb, uint32_t depth_value, uint8_t stencil_value)
   ClearColorRegion(argb);
   ClearDepthStencilRegion(depth_value, stencil_value);
   pb_erase_text_screen();
+  TextOverlay::Reset();
 }
 
 static void __attribute__((optimize("O0"))) fetch_constant(float *buffer, uint32_t index) {
@@ -243,8 +245,6 @@ void TestHost::Compute(const std::list<Computation> &computations) {
     float left = 0.0f;
     float top = 0.0f;
 
-    SetFinalCombiner0Just(SRC_ZERO);
-    SetFinalCombiner1Just(SRC_ZERO, true);
     Begin(PRIMITIVE_QUADS);
     SetVertex(left, 0.0, 0.0, 1.0);
     SetVertex(left + kPatchSize, top, 0.0, 1.0);
@@ -334,10 +334,9 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
 
   Clear(0x2F2C2E);
 
-  SetFinalCombiner0Just(SRC_ZERO);
-  SetFinalCombiner1Just(SRC_ZERO, true, true);
+  auto shader = vertex_shader_program_;
 
-  pb_print("%s\n", name.c_str());
+  TextOverlay::Print("%s\n", name.c_str());
 
   auto print_vals = [](uint32_t index, const VECTOR vals, const std::map<uint32_t, std::string> &labels) {
     // pbkit's handling of exceptional floats is not trustable.
@@ -348,11 +347,11 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
     } else {
       snprintf_(buf, sizeof(buf), " %s%f,%f,%f,%f\n", label->second.c_str(), vals[0], vals[1], vals[2], vals[3]);
     }
-    pb_print("%s", buf);
+    TextOverlay::Print("%s", buf);
   };
 
   for (auto &result : results) {
-    pb_print("%s:\n", result.title.c_str());
+    TextOverlay::Print("%s:\n", result.title.c_str());
     if (result.results_mask & RES_0) {
       print_vals(0, result.c188, result.result_labels);
     }
@@ -367,13 +366,12 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
     }
   }
 
-  pb_draw_text_screen();
-
   bool perform_save = allow_saving && save_results_;
   if (!perform_save) {
-    pb_printat(0, 55, (char *)"ns");
-    pb_draw_text_screen();
+    TextOverlay::PrintAt(0, 55, (char *)"ns");
   }
+
+  TextOverlay::Render();
 
   if (perform_save) {
     // TODO: See why waiting for tiles to be non-busy results in the screen not updating anymore.
@@ -385,6 +383,8 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
 
   while (pb_finished()) {
   }
+
+  SetVertexShaderProgram(shader);
 }
 
 std::shared_ptr<VertexShaderProgram> TestHost::PrepareCalculation(const uint32_t *shader_code, uint32_t shader_size) {

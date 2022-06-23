@@ -16,9 +16,7 @@ THIRDPARTYDIR = $(CURDIR)/third_party
 OPTIMIZED_SRCS = \
 	$(SRCDIR)/debug_output.cpp \
 	$(SRCDIR)/logger.cpp \
-	$(SRCDIR)/main.cpp \
 	$(SRCDIR)/math3d.c \
-	$(SRCDIR)/menu_item.cpp \
 	$(SRCDIR)/pbkit_ext.cpp \
 	$(SRCDIR)/pgraph_diff_token.cpp \
 	$(SRCDIR)/test_driver.cpp \
@@ -26,10 +24,14 @@ OPTIMIZED_SRCS = \
     $(THIRDPARTYDIR)/fpng/src/fpng.cpp \
 	$(THIRDPARTYDIR)/nv2a_vsh_cpu/src/nv2a_vsh_cpu.c \
 	$(THIRDPARTYDIR)/nxdk/lib/sdl/SDL2/src/test/SDL_test_fuzzer.c \
-	$(THIRDPARTYDIR)/printf/printf.c
+	$(THIRDPARTYDIR)/printf/printf.c \
+	$(THIRDPARTYDIR)/SDL_FontCache/SDL_FontCache.c
 
 SRCS = \
+	$(SRCDIR)/main.cpp \
+	$(SRCDIR)/menu_item.cpp \
 	$(SRCDIR)/shaders/vertex_shader_program.cpp \
+	$(SRCDIR)/text_overlay.cpp \
 	$(SRCDIR)/test_host.cpp \
 	$(SRCDIR)/tests/mac_mov_tests.cpp \
 	$(SRCDIR)/tests/test_suite.cpp \
@@ -71,9 +73,17 @@ NV2A_VSH_OBJS = \
 	$(SRCDIR)/shaders/vertex_data_array_format_passthrough.vshinc \
 	$(SRCDIR)/shaders/spyvsspymenu.vshinc
 
+INCLUDE_PATHS = \
+	-I$(SRCDIR) \
+	-I$(THIRDPARTYDIR) \
+	-I$(THIRDPARTYDIR)/nv2a_vsh_cpu/src \
+	-I$(THIRDPARTYDIR)/sdl-gpu/include
 
-CFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR) -I$(THIRDPARTYDIR)/nv2a_vsh_cpu/src
-CXXFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR) -I$(THIRDPARTYDIR)/nv2a_vsh_cpu/src -DFPNG_NO_STDIO=1 -DFPNG_NO_SSE=1
+CFLAGS += $(INCLUDE_PATHS) -DFC_USE_SDL_GPU
+CXXFLAGS += $(INCLUDE_PATHS) -DFPNG_NO_STDIO=1 -DFPNG_NO_SSE=1 -DFC_USE_SDL_GPU
+
+override SDL_GPU_DIR := $(THIRDPARTYDIR)/sdl-gpu
+include $(THIRDPARTYDIR)/pbkit-sdl-gpu/Makefile.inc
 
 OPTIMIZE_COMPILE_FLAGS = -O3 -fno-strict-aliasing
 ifneq ($(DEBUG),y)
@@ -125,7 +135,7 @@ ifeq ($(ENABLE_PROGRESS_LOG),y)
 CXXFLAGS += -DENABLE_PROGRESS_LOG
 endif
 
-CLEANRULES = clean-optimized clean-nv2a-vsh-objs
+CLEANRULES = clean-optimized clean-nv2a-vsh-objs clean-resources
 include $(NXDK_DIR)/Makefile
 
 PBKIT_DEBUG ?= n
@@ -195,3 +205,19 @@ clean-nv2a-vsh-objs:
 $(NV2A_VSH_OBJS): %.vshinc: %.vsh
 	@echo "[ nv2avsh  ] $@"
 	$(VE) $(NV2AVSH) '$<' '$@'
+
+# Resources
+RESOURCE_FILES = $(shell find $(RESOURCEDIR)/ -type f)
+RESOURCES = \
+	$(patsubst $(RESOURCEDIR)/%,$(OUTPUT_DIR)/%,$(RESOURCE_FILES))
+
+TARGET += $(RESOURCES)
+$(GEN_XISO): $(RESOURCES)
+
+$(OUTPUT_DIR)/%: $(RESOURCEDIR)/%
+	$(VE)mkdir -p '$(dir $@)'
+	$(VE)cp -r '$<' '$@'
+
+.PHONY: clean-resources
+clean-resources:
+	$(VE)rm -rf $(patsubst $(RESOURCEDIR)/%,$(OUTPUT_DIR)/%,$(RESOURCES))

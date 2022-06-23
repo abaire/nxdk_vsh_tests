@@ -9,6 +9,7 @@
 #include "debug_output.h"
 #include "pbkit_ext.h"
 #include "shaders/vertex_shader_program.h"
+#include "text_overlay.h"
 
 static constexpr int kUnitsInLastPlace = 4;
 
@@ -133,15 +134,15 @@ static void print_result_diff(const float *hw_result, const float *cpu_result) {
     as_int_cpu[i] = *(uint32_t *)&cpu_result[i];
   }
 
-  pb_print("   HW                   CPU\n");
-  pb_print("X: %- 18.10g %- 18.10g\n", hw_result[0], cpu_result[0]);
-  pb_print("   0x%08X           0x%08X\n", as_int_hw[0], as_int_cpu[0]);
-  pb_print("Y: %- 18.10g %- 18.10g\n", hw_result[1], cpu_result[1]);
-  pb_print("   0x%08X           0x%08X\n", as_int_hw[1], as_int_cpu[1]);
-  pb_print("Z: %- 18.10g %- 18.10g\n", hw_result[2], cpu_result[2]);
-  pb_print("   0x%08X           0x%08X\n", as_int_hw[2], as_int_cpu[2]);
-  pb_print("W: %- 18.10g %- 18.10g\n", hw_result[3], cpu_result[3]);
-  pb_print("   0x%08X           0x%08X\n", as_int_hw[3], as_int_cpu[3]);
+  TextOverlay::Print("   HW                   CPU\n");
+  TextOverlay::Print("X: %- 18.10g %- 18.10g\n", hw_result[0], cpu_result[0]);
+  TextOverlay::Print("   0x%08X           0x%08X\n", as_int_hw[0], as_int_cpu[0]);
+  TextOverlay::Print("Y: %- 18.10g %- 18.10g\n", hw_result[1], cpu_result[1]);
+  TextOverlay::Print("   0x%08X           0x%08X\n", as_int_hw[1], as_int_cpu[1]);
+  TextOverlay::Print("Z: %- 18.10g %- 18.10g\n", hw_result[2], cpu_result[2]);
+  TextOverlay::Print("   0x%08X           0x%08X\n", as_int_hw[2], as_int_cpu[2]);
+  TextOverlay::Print("W: %- 18.10g %- 18.10g\n", hw_result[3], cpu_result[3]);
+  TextOverlay::Print("   0x%08X           0x%08X\n", as_int_hw[3], as_int_cpu[3]);
 }
 
 static void print_assert_message(const char *name, const float *a, const float *hw_result, const float *cpu_result) {
@@ -150,7 +151,7 @@ static void print_assert_message(const char *name, const float *a, const float *
            *(uint32_t *)&a[0], *(uint32_t *)&a[1], *(uint32_t *)&a[2], *(uint32_t *)&a[3]);
 
   PrintMsg("%s", buf);
-  pb_print("%s", buf);
+  TextOverlay::Print("%s", buf);
   print_result_diff(hw_result, cpu_result);
 }
 
@@ -162,7 +163,7 @@ static void print_assert_message(const char *name, const float *a, const float *
            a[1], a[2], a[3], *(uint32_t *)&a[0], *(uint32_t *)&a[1], *(uint32_t *)&a[2], *(uint32_t *)&a[3], b[0], b[1],
            b[2], b[3], *(uint32_t *)&b[0], *(uint32_t *)&b[1], *(uint32_t *)&b[2], *(uint32_t *)&b[3]);
   PrintMsg("%s", buf);
-  pb_print("%s", buf);
+  TextOverlay::Print("%s", buf);
   print_result_diff(hw_result, cpu_result);
 }
 
@@ -170,13 +171,17 @@ static void print_assert_message(const char *name, const float *a, const float *
                                  const float *hw_result, const float *cpu_result) {
   char buf[256];
   snprintf(buf, sizeof(buf),
-           "FAIL: %s\n  (%g,%g,%g,%g\n   %08X,%08X,%08X,%08X)\n  (%g,%g,%g,%g\n   %08X,%08X,%08X,%08X)\n  "
-           "(%g,%g,%g,%g\n   %08X,%08X,%08X,%08X)\n\n",
-           name, a[0], a[1], a[2], a[3], *(uint32_t *)&a[0], *(uint32_t *)&a[1], *(uint32_t *)&a[2], *(uint32_t *)&a[3],
-           b[0], b[1], b[2], b[3], *(uint32_t *)&b[0], *(uint32_t *)&b[1], *(uint32_t *)&b[2], *(uint32_t *)&b[3], c[0],
-           c[1], c[2], c[3], *(uint32_t *)&c[0], *(uint32_t *)&c[1], *(uint32_t *)&c[2], *(uint32_t *)&c[3]);
+           "FAIL: %s\n  (%g,%g,%g,%g\n   %08X,%08X,%08X,%08X)\n  (%g,%g,%g,%g\n   %08X,%08X,%08X,%08X)\n", name, a[0],
+           a[1], a[2], a[3], *(uint32_t *)&a[0], *(uint32_t *)&a[1], *(uint32_t *)&a[2], *(uint32_t *)&a[3], b[0], b[1],
+           b[2], b[3], *(uint32_t *)&b[0], *(uint32_t *)&b[1], *(uint32_t *)&b[2], *(uint32_t *)&b[3]);
   PrintMsg("%s", buf);
-  pb_print("%s", buf);
+  TextOverlay::Print("%s", buf);
+
+  snprintf(buf, sizeof(buf), "  (%g,%g,%g,%g\n   %08X,%08X,%08X,%08X)\n\n", c[0], c[1], c[2], c[3], *(uint32_t *)&c[0],
+           *(uint32_t *)&c[1], *(uint32_t *)&c[2], *(uint32_t *)&c[3]);
+  PrintMsg("%s", buf);
+  TextOverlay::Print("%s", buf);
+
   print_result_diff(hw_result, cpu_result);
 }
 
@@ -254,7 +259,7 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
     if (!almost_equal(cpu_result, hw_result)) {
       pb_reset();
       host.Clear();
-      pb_erase_text_screen();
+      TextOverlay::Reset();
 
       switch (num_inputs) {
         case 1:
@@ -273,7 +278,7 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
           ASSERT(!"Invalid number of inputs.");
       }
 
-      pb_print("at %d/%d\n", *num_successes, *num_tests);
+      TextOverlay::Print("at %d/%d\n", *num_successes, *num_tests);
       return false;
     }
     ++*num_successes;
@@ -281,8 +286,8 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
 
   pb_reset();
   host.Clear();
-  pb_print("%d of %d\n", *num_successes, *num_tests);
-  pb_draw_text_screen();
+  TextOverlay::Print("%d of %d\n", *num_successes, *num_tests);
+  TextOverlay::Render();
   while (pb_finished()) {
   }
 
@@ -291,6 +296,8 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
 
 void CpuShaderTests::Test(const char *name, uint32_t num_inputs, const uint32_t *shader, uint32_t shader_size,
                           const std::function<void(float *, const float *)> &cpu_op, uint32_t assert_line) {
+  TextOverlay::Reset();
+
   // TODO: Test exceptional values
   uint32_t num_successes = 0;
   uint32_t num_tests = 0;
@@ -311,7 +318,7 @@ void CpuShaderTests::Test(const char *name, uint32_t num_inputs, const uint32_t 
       }
 
       if (!TestBatch(host_, name, num_inputs, shader, shader_size, cpu_op, inputs, &num_successes, &num_tests)) {
-        pb_draw_text_screen();
+        TextOverlay::Render();
         while (pb_finished()) {
         }
         return;
@@ -345,8 +352,9 @@ void CpuShaderTests::Test(const char *name, uint32_t num_inputs, const uint32_t 
   pb_wait_for_vbl();
   pb_reset();
   host_.Clear();
-  pb_print("%d of %d Succeeded\n", num_successes, num_tests);
-  pb_draw_text_screen();
+  TextOverlay::Reset();
+  TextOverlay::Print("%d of %d Succeeded\n", num_successes, num_tests);
+  TextOverlay::Render();
   while (pb_finished()) {
   }
 }
