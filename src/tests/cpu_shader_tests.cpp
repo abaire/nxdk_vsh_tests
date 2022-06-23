@@ -236,9 +236,11 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
 
 #ifdef LOG_VERBOSE
         PrintMsg("HW INPUTS[%d]:\n", j);
-        for (auto foo = 0; foo < op_inputs.size() / 4; ++foo) {
-          PrintMsg("  %g, %g, %g, %g\n", op_inputs[foo * 4 + 0], op_inputs[foo * 4 + 1], op_inputs[foo * 4 + 2],
-                   op_inputs[foo * 4 + 3]);
+        for (auto idx = 0; idx < op_inputs.size() / 4; ++idx) {
+          PrintMsg("HW IN[%d]  %g (0x%08X), %g (0x%08X), %g (0x%08X), %g (0x%08X)\n", idx, op_inputs[idx * 4 + 0],
+                   *(uint32_t *)&op_inputs[idx * 4 + 0], op_inputs[idx * 4 + 1], *(uint32_t *)&op_inputs[idx * 4 + 1],
+                   op_inputs[idx * 4 + 2], *(uint32_t *)&op_inputs[idx * 4 + 2], op_inputs[idx * 4 + 3],
+                   *(uint32_t *)&op_inputs[idx * 4 + 3]);
         }
 #endif
 
@@ -266,9 +268,11 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
 
 #ifdef LOG_VERBOSE
     PrintMsg("CPU INPUTS[%d]:\n", j);
-    for (auto foo = 0; foo < op_inputs.size() / 4; ++foo) {
-      PrintMsg("  %g, %g, %g, %g\n", op_inputs[foo * 4 + 0], op_inputs[foo * 4 + 1], op_inputs[foo * 4 + 2],
-               op_inputs[foo * 4 + 3]);
+    for (auto idx = 0; idx < op_inputs.size() / 4; ++idx) {
+      PrintMsg("CPU IN[%d]  %g (0x%08X), %g (0x%08X), %g (0x%08X), %g (0x%08X)\n", idx, op_inputs[idx * 4 + 0],
+               *(uint32_t *)&op_inputs[idx * 4 + 0], op_inputs[idx * 4 + 1], *(uint32_t *)&op_inputs[idx * 4 + 1],
+               op_inputs[idx * 4 + 2], *(uint32_t *)&op_inputs[idx * 4 + 2], op_inputs[idx * 4 + 3],
+               *(uint32_t *)&op_inputs[idx * 4 + 3]);
     }
 #endif
 
@@ -313,12 +317,23 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
 }
 
 void CpuShaderTests::Test(const char *name, uint32_t num_inputs, const uint32_t *shader, uint32_t shader_size,
-                          const std::function<void(float *, const float *)> &cpu_op, uint32_t assert_line) {
+                          const std::function<void(float *, const float *)> &cpu_op, uint32_t assert_line,
+                          const std::list<std::vector<float>> &additional_inputs) {
   TextOverlay::Reset();
 
   // TODO: Test exceptional values
   uint32_t num_successes = 0;
   uint32_t num_tests = 0;
+
+  if (!additional_inputs.empty()) {
+    if (!TestBatch(host_, name, num_inputs, shader, shader_size, cpu_op, additional_inputs, &num_successes,
+                   &num_tests)) {
+      TextOverlay::Render();
+      while (pb_finished()) {
+      }
+      return;
+    }
+  }
 
   {
     const uint32_t num_values = test_values_.size();
@@ -411,6 +426,16 @@ void CpuShaderTests::TestMov() { Test("MOV", 1, kMov, sizeof(kMov), nv2a_vsh_cpu
 
 void CpuShaderTests::TestMul() { Test("MUL", 2, kMul, sizeof(kMul), nv2a_vsh_cpu_mul, __LINE__); }
 
-void CpuShaderTests::TestSge() { Test("SGE", 2, kSge, sizeof(kSge), nv2a_vsh_cpu_sge, __LINE__); }
+void CpuShaderTests::TestSge() {
+  std::list<std::vector<float>> explicit_tests = {
+      {-0.0f, 0.0f, -0.0f, 0.0f, 0.0f, 0.0f, -0.0f, -0.0f},
+  };
+  Test("SGE", 2, kSge, sizeof(kSge), nv2a_vsh_cpu_sge, __LINE__, explicit_tests);
+}
 
-void CpuShaderTests::TestSlt() { Test("SLT", 2, kSlt, sizeof(kSlt), nv2a_vsh_cpu_slt, __LINE__); }
+void CpuShaderTests::TestSlt() {
+  std::list<std::vector<float>> explicit_tests = {
+      {-0.0f, 0.0f, -0.0f, 0.0f, 0.0f, 0.0f, -0.0f, -0.0f},
+  };
+  Test("SLT", 2, kSlt, sizeof(kSlt), nv2a_vsh_cpu_slt, __LINE__, explicit_tests);
+}

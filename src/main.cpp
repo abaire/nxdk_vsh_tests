@@ -100,6 +100,7 @@ int main() {
   };
 
   pb_show_front_screen();
+  debugClearScreen();
 
   TextOverlay::Create(gpu_target, "D:\\IBMPlexMono-SemiBold.ttf", kFramebufferWidth - 2 * kTextInsetX,
                       kFramebufferHeight - 2 * kTextInsetY, kTextInsetX, kTextInsetY);
@@ -140,6 +141,7 @@ int main() {
 #ifdef ENABLE_SHUTDOWN
   HalInitiateShutdown();
 #else
+  debugClearScreen();
   debugPrint("Results written to %s\n\nRebooting in 4 seconds...\n", test_output_directory.c_str());
 #endif
   pb_show_debug_screen();

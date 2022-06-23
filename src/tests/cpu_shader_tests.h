@@ -33,7 +33,8 @@ class CpuShaderTests : public TestSuite {
   void TestSlt();
 
   void Test(const char* name, uint32_t num_inputs, const uint32_t* shader, uint32_t shader_size,
-            const std::function<void(float*, const float*)>& cpu_op, uint32_t assert_line);
+            const std::function<void(float*, const float*)>& cpu_op, uint32_t assert_line,
+            const std::list<std::vector<float>>& additional_inputs = {});
 
  private:
   std::vector<float> test_values_;
