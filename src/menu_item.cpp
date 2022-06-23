@@ -5,7 +5,9 @@
 #include <chrono>
 #include <utility>
 
+#include "pbkit_ext.h"
 #include "tests/test_suite.h"
+#include "text_overlay.h"
 
 #ifdef AUTORUN_IMMEDIATELY
 static constexpr uint32_t kAutoTestAllTimeoutMilliseconds = 0;
@@ -24,17 +26,24 @@ void MenuItem::PrepareDraw(uint32_t background_color) const {
   pb_reset();
   pb_fill(0, 0, width, height, background_color);
   pb_erase_text_screen();
+  TextOverlay::Reset();
+
+  auto p = pb_begin();
+  p = pb_push1(p, NV097_SET_BLEND_ENABLE, true);
+  p = pb_push1(p, NV097_SET_BLEND_EQUATION, NV097_SET_BLEND_EQUATION_V_FUNC_ADD);
+  p = pb_push1(p, NV097_SET_BLEND_FUNC_SFACTOR, NV097_SET_BLEND_FUNC_SFACTOR_V_SRC_ALPHA);
+  p = pb_push1(p, NV097_SET_BLEND_FUNC_DFACTOR, NV097_SET_BLEND_FUNC_DFACTOR_V_ONE_MINUS_SRC_ALPHA);
+
+  p = pb_push1(
+      p, NV097_SET_TRANSFORM_EXECUTION_MODE,
+      MASK(NV097_SET_TRANSFORM_EXECUTION_MODE_MODE, NV097_SET_TRANSFORM_EXECUTION_MODE_MODE_FIXED) |
+          MASK(NV097_SET_TRANSFORM_EXECUTION_MODE_RANGE_MODE, NV097_SET_TRANSFORM_EXECUTION_MODE_RANGE_MODE_PRIV));
+  pb_end(p);
 }
 
 void MenuItem::Swap() {
-  pb_draw_text_screen();
-  while (pb_busy()) {
-    /* Wait for completion... */
-  }
-
-  /* Swap buffers (if we can) */
+  TextOverlay::Render();
   while (pb_finished()) {
-    /* Not ready to swap yet */
   }
 }
 
@@ -64,7 +73,7 @@ void MenuItem::Draw() {
   }
 
   if (i) {
-    pb_print("...\n");
+    TextOverlay::Print("...\n");
   }
 
   uint32_t i_end = i + std::min(kNumItemsPerPage, submenu.size());
@@ -72,11 +81,11 @@ void MenuItem::Draw() {
   for (; i < i_end; ++i) {
     const char *prefix = i == cursor_position ? cursor_prefix : normal_prefix;
     const char *suffix = i == cursor_position ? cursor_suffix : normal_suffix;
-    pb_print("%s%s%s\n", prefix, submenu[i]->name.c_str(), suffix);
+    TextOverlay::Print("%s%s%s\n", prefix, submenu[i]->name.c_str(), suffix);
   }
 
   if (i_end < submenu.size()) {
-    pb_print("...\n");
+    TextOverlay::Print("...\n");
   }
 
   Swap();
@@ -208,7 +217,7 @@ void MenuItemTest::Draw() {
 void MenuItemTest::OnEnter() {
   // Blank the screen.
   PrepareDraw(0xFF000000);
-  pb_print("Running %s", name.c_str());
+  TextOverlay::Print("Running %s", name.c_str());
   Swap();
 
   suite->Initialize();

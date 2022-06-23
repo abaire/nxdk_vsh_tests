@@ -10,3 +10,12 @@
 [submodule "third_party/nv2a_vsh_cpu"]
 	path = third_party/nv2a_vsh_cpu
 	url = https://github.com/abaire/nv2a_vsh_cpu.git
+[submodule "third_party/SDL_FontCache"]
+	path = third_party/SDL_FontCache
+	url = https://github.com/grimfang4/SDL_FontCache.git
+[submodule "third_party/sdl-gpu"]
+	path = third_party/sdl-gpu
+	url = https://github.com/grimfang4/sdl-gpu.git
+[submodule "third_party/pbkit-sdl-gpu"]
+	path = third_party/pbkit-sdl-gpu
+	url = https://github.com/abaire/pbkit-sdl-gpu.git

@@ -21,6 +21,7 @@
 #include "SDL_test_fuzzer.h"
 #include "debug_output.h"
 #include "logger.h"
+#include "pbkit-sdl-gpu/pbkit_sdl_gpu.h"
 #include "test_driver.h"
 #include "test_host.h"
 #include "tests/americasarmyshader.h"
@@ -31,12 +32,14 @@
 #include "tests/paired_ilu_tests.h"
 #include "tests/spyvsspymenu.h"
 #include "tests/vertex_data_array_format_tests.h"
+#include "text_overlay.h"
 
 #ifndef FALLBACK_OUTPUT_ROOT_PATH
 #define FALLBACK_OUTPUT_ROOT_PATH "e:\\";
 #endif
-static constexpr int kTextureWidth = 256;
-static constexpr int kTextureHeight = 256;
+
+static constexpr uint32_t kTextInsetX = 10;
+static constexpr uint32_t kTextInsetY = 20;
 
 static constexpr const char* kLogFileName = "log.txt";
 
@@ -52,13 +55,26 @@ static void process_config(const char* config_file_path, std::vector<std::shared
 int main() {
   XVideoSetMode(kFramebufferWidth, kFramebufferHeight, 32, REFRESH_DEFAULT);
 
-  int status = pb_init();
-  if (status) {
-    debugPrint("pb_init Error %d\n", status);
-    pb_show_debug_screen();
-    Sleep(2000);
-    return 1;
+  PBKitSDLGPUInit();
+  GPU_Target* gpu_target = nullptr;
+  {
+    SDL_Window* window = SDL_CreateWindow("NevolutionX", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                                          kFramebufferWidth, kFramebufferHeight, SDL_WINDOW_SHOWN);
+    GPU_SetInitWindow(SDL_GetWindowID(window));
+    gpu_target = GPU_Init(kFramebufferWidth, kFramebufferHeight, GPU_DEFAULT_INIT_FLAGS);
+    if (!gpu_target) {
+      debugPrint("Failed to initialize SDL_GPU.");
+      debugPrint("%s", SDL_GetError());
+      pb_show_debug_screen();
+      Sleep(2000);
+      return 1;
+    }
+    GPU_SetShapeBlendMode(GPU_BLEND_NORMAL);
+    GPU_ClearColor(gpu_target, GPU_MakeColor(0, 0, 0, 0xFF));
   }
+
+  debugPrint("Initializing...");
+  pb_show_debug_screen();
 
   if (SDL_Init(SDL_INIT_GAMECONTROLLER)) {
     debugPrint("Failed to initialize SDL_GAMECONTROLLER.");
@@ -84,6 +100,10 @@ int main() {
   };
 
   pb_show_front_screen();
+
+  TextOverlay::Create(gpu_target, "D:\\IBMPlexMono-SemiBold.ttf", kFramebufferWidth - 2 * kTextInsetX,
+                      kFramebufferHeight - 2 * kTextInsetY, kTextInsetX, kTextInsetY);
+  GPU_Flip(gpu_target);
 
   {
     auto now = std::chrono::high_resolution_clock::now();
