@@ -2,6 +2,8 @@
 
 #include <pbkit/pbkit.h>
 
+#include <cfloat>
+
 #include "../test_host.h"
 #include "SDL_stdinc.h"
 #include "SDL_test_fuzzer.h"
@@ -14,6 +16,9 @@
 static constexpr int kUnitsInLastPlace = 4;
 
 //#define LOG_VERBOSE
+
+//#define USE_EXCEPTIONAL_VALUES
+
 //#define USE_FUZZ
 
 static constexpr uint32_t kNumIterations = 32;
@@ -117,9 +122,11 @@ void CpuShaderTests::Initialize() {
   TestSuite::Initialize();
 
   test_values_.clear();
+#ifdef USE_EXCEPTIONAL_VALUES
   for (auto val : kExceptionalValues) {
     test_values_.emplace_back(*(float *)&val);
   }
+#endif
   for (auto val : kNormalValues) {
     test_values_.emplace_back(val);
     test_values_.emplace_back(-1.0f * val);
@@ -195,6 +202,15 @@ static bool almost_equal(const float *cpu_result, const float *hw_result) {
     // Consider any NaN representations to be equivalent.
     if (nan_a) {
       return true;
+    }
+
+    // Zeros are allowed more absolute difference.
+    uint32_t hw_int = *(uint32_t *)&hw_result[i];
+    if (!hw_int) {
+      if (fabsf(cpu_result[i]) > FLT_EPSILON) {
+        return false;
+      }
+      continue;
     }
 
     if (!almost_equal_ulps(cpu_result[i], hw_result[i], kUnitsInLastPlace)) {
@@ -286,7 +302,7 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
 
   pb_reset();
   host.Clear();
-  TextOverlay::Print("%d of %d\n", *num_successes, *num_tests);
+  TextOverlay::Print("%s: %d of %d\n", name, *num_successes, *num_tests);
   TextOverlay::Render();
   while (pb_finished()) {
   }
@@ -353,7 +369,7 @@ void CpuShaderTests::Test(const char *name, uint32_t num_inputs, const uint32_t 
   pb_reset();
   host_.Clear();
   TextOverlay::Reset();
-  TextOverlay::Print("%d of %d Succeeded\n", num_successes, num_tests);
+  TextOverlay::Print("%s: %d of %d Succeeded\n", name, num_successes, num_tests);
   TextOverlay::Render();
   while (pb_finished()) {
   }
