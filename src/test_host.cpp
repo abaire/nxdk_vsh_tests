@@ -36,12 +36,16 @@ static const uint32_t kComputeFooter[] = {
 
 #define MAX_FILE_PATH_SIZE 248
 
+#ifdef LOG_GET_CONSTANT
+#define GET_CONSTANT(var, idx) fetch_constant(var, idx)
+#else
 #define GET_CONSTANT(var, idx)                                                                                      \
   do {                                                                                                              \
     fetch_constant(var, idx);                                                                                       \
     PrintMsg("c[%d]: 0x%X (%f), 0x%X (%f), 0x%X (%f), 0x%X (%f)\n", (idx), *(uint32_t *)&(var)[0], (var)[0],        \
              *(uint32_t *)&(var)[1], (var)[1], *(uint32_t *)&(var)[2], (var)[2], *(uint32_t *)&(var)[3], (var)[3]); \
   } while (0)
+#endif
 
 // From pbkit.c, DMA_A is set to channel 3 by default
 // NV097_SET_CONTEXT_DMA_A == NV20_TCL_PRIMITIVE_3D_SET_OBJECT1

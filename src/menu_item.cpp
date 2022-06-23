@@ -14,7 +14,7 @@ static constexpr uint32_t kAutoTestAllTimeoutMilliseconds = 0;
 #else
 static constexpr uint32_t kAutoTestAllTimeoutMilliseconds = 3000;
 #endif
-static constexpr uint32_t kNumItemsPerPage = 12;
+static constexpr uint32_t kNumItemsPerPage = 20;
 static constexpr uint32_t kNumItemsPerHalfPage = kNumItemsPerPage >> 1;
 
 uint32_t MenuItem::menu_background_color_ = 0xFF3E003E;

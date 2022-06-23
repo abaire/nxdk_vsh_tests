@@ -223,36 +223,38 @@ static bool almost_equal(const float *cpu_result, const float *hw_result) {
 static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, const uint32_t *shader,
                       uint32_t shader_size, const std::function<void(float *, const float *)> &cpu_op,
                       const std::list<std::vector<float>> &inputs, uint32_t *num_successes, uint32_t *num_tests) {
-  std::list<TestHost::Computation> computations;
+  int j = 0;
   std::list<TestHost::Results> results;
 
-  int j = 0;
-  for (auto &input_set : inputs) {
-    auto prepare = [&inputs, j, num_inputs](const std::shared_ptr<VertexShaderProgram> &shader) {
-      auto input_it = inputs.begin();
-      std::advance(input_it, j);
-      const std::vector<float> &op_inputs = *input_it;
+  {
+    std::list<TestHost::Computation> computations;
+    for (auto &input_set : inputs) {
+      auto prepare = [&inputs, j, num_inputs](const std::shared_ptr<VertexShaderProgram> &shader) {
+        auto input_it = inputs.begin();
+        std::advance(input_it, j);
+        const std::vector<float> &op_inputs = *input_it;
 
 #ifdef LOG_VERBOSE
-      PrintMsg("HW INPUTS[%d]:\n", j);
-      for (auto foo = 0; foo < op_inputs.size() / 4; ++foo) {
-        PrintMsg("  %g, %g, %g, %g\n", op_inputs[foo * 4 + 0], op_inputs[foo * 4 + 1], op_inputs[foo * 4 + 2],
-                 op_inputs[foo * 4 + 3]);
-      }
+        PrintMsg("HW INPUTS[%d]:\n", j);
+        for (auto foo = 0; foo < op_inputs.size() / 4; ++foo) {
+          PrintMsg("  %g, %g, %g, %g\n", op_inputs[foo * 4 + 0], op_inputs[foo * 4 + 1], op_inputs[foo * 4 + 2],
+                   op_inputs[foo * 4 + 3]);
+        }
 #endif
 
-      uint32_t offset = 0;
-      for (auto input = 0; input < num_inputs; ++input, offset += 4) {
-        shader->SetUniformF(96 + input, op_inputs[offset], op_inputs[offset + 1], op_inputs[offset + 2],
-                            op_inputs[offset + 3]);
-      }
-    };
+        uint32_t offset = 0;
+        for (auto input = 0; input < num_inputs; ++input, offset += 4) {
+          shader->SetUniformF(96 + input, op_inputs[offset], op_inputs[offset + 1], op_inputs[offset + 2],
+                              op_inputs[offset + 3]);
+        }
+      };
 
-    results.emplace_back("result");
-    computations.push_back({shader, shader_size, prepare, &results.back()});
+      results.emplace_back("result");
+      computations.push_back({shader, shader_size, prepare, &results.back()});
+    }
+
+    host.Compute(computations);
   }
-
-  host.Compute(computations);
 
   auto input_it = inputs.begin();
   j = 0;
