@@ -18,11 +18,13 @@
 #include <string>
 #include <vector>
 
+#include "SDL_test_fuzzer.h"
 #include "debug_output.h"
 #include "logger.h"
 #include "test_driver.h"
 #include "test_host.h"
 #include "tests/americasarmyshader.h"
+#include "tests/cpu_shader_tests.h"
 #include "tests/ilu_rcp_tests.h"
 #include "tests/mac_add_tests.h"
 #include "tests/mac_mov_tests.h"
@@ -83,6 +85,11 @@ int main() {
 
   pb_show_front_screen();
 
+  {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto seed = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
+    SDLTest_FuzzerInit(seed);
+  }
   TestHost host;
 
   std::vector<std::shared_ptr<TestSuite>> test_suites;
@@ -252,6 +259,10 @@ static void process_config(const char* config_file_path, std::vector<std::shared
 
 static void register_suites(TestHost& host, std::vector<std::shared_ptr<TestSuite>>& test_suites,
                             const std::string& output_directory) {
+  {
+    auto suite = std::make_shared<CpuShaderTests>(host, output_directory);
+    test_suites.push_back(suite);
+  }
   {
     auto suite = std::make_shared<MACMovTests>(host, output_directory);
     test_suites.push_back(suite);

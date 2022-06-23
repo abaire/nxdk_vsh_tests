@@ -22,8 +22,11 @@ OPTIMIZED_SRCS = \
 	$(SRCDIR)/pbkit_ext.cpp \
 	$(SRCDIR)/pgraph_diff_token.cpp \
 	$(SRCDIR)/test_driver.cpp \
-	$(THIRDPARTYDIR)/printf/printf.c \
-	$(THIRDPARTYDIR)/fpng/src/fpng.cpp
+	$(THIRDPARTYDIR)/compareasint/compare_as_int.cpp \
+    $(THIRDPARTYDIR)/fpng/src/fpng.cpp \
+	$(THIRDPARTYDIR)/nv2a_vsh_cpu/src/nv2a_vsh_cpu.c \
+	$(THIRDPARTYDIR)/nxdk/lib/sdl/SDL2/src/test/SDL_test_fuzzer.c \
+	$(THIRDPARTYDIR)/printf/printf.c
 
 SRCS = \
 	$(SRCDIR)/shaders/vertex_shader_program.cpp \
@@ -35,21 +38,42 @@ SRCS = \
 	$(SRCDIR)/tests/ilu_rcp_tests.cpp \
 	$(SRCDIR)/tests/paired_ilu_tests.cpp \
 	$(SRCDIR)/tests/vertex_data_array_format_tests.cpp \
-	$(SRCDIR)/tests/spyvsspymenu.cpp
+	$(SRCDIR)/tests/spyvsspymenu.cpp \
+	$(SRCDIR)/tests/cpu_shader_tests.cpp
 
 NV2A_VSH_OBJS = \
 	$(SRCDIR)/shaders/clear_state.vshinc \
 	$(SRCDIR)/shaders/compute_footer.vshinc \
-	$(SRCDIR)/shaders/mac_mov.vshinc \
-	$(SRCDIR)/shaders/mac_add.vshinc \
-	$(SRCDIR)/shaders/americas_army_shader.vshinc \
+	$(SRCDIR)/shaders/ilu_exp_passthrough.vshinc \
+	$(SRCDIR)/shaders/ilu_lit_passthrough.vshinc \
+	$(SRCDIR)/shaders/ilu_log_passthrough.vshinc \
+	$(SRCDIR)/shaders/ilu_rcc_passthrough.vshinc \
 	$(SRCDIR)/shaders/ilu_rcp.vshinc \
+	$(SRCDIR)/shaders/ilu_rcp_passthrough.vshinc \
+	$(SRCDIR)/shaders/ilu_rsq_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_add.vshinc \
+	$(SRCDIR)/shaders/mac_add_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_arl_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_dp3_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_dp4_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_dph_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_dst_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_mad_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_max_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_min_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_mov.vshinc \
+	$(SRCDIR)/shaders/mac_mov_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_mul_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_sge_passthrough.vshinc \
+	$(SRCDIR)/shaders/mac_slt_passthrough.vshinc \
+	$(SRCDIR)/shaders/americas_army_shader.vshinc \
 	$(SRCDIR)/shaders/paired_ilu_non_r1_temp_out.vshinc \
 	$(SRCDIR)/shaders/vertex_data_array_format_passthrough.vshinc \
 	$(SRCDIR)/shaders/spyvsspymenu.vshinc
 
-CFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR)
-CXXFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR) -DFPNG_NO_STDIO=1 -DFPNG_NO_SSE=1
+
+CFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR) -I$(THIRDPARTYDIR)/nv2a_vsh_cpu/src
+CXXFLAGS += -I$(SRCDIR) -I$(THIRDPARTYDIR) -I$(THIRDPARTYDIR)/nv2a_vsh_cpu/src -DFPNG_NO_STDIO=1 -DFPNG_NO_SSE=1
 
 OPTIMIZE_COMPILE_FLAGS = -O3 -fno-strict-aliasing
 ifneq ($(DEBUG),y)

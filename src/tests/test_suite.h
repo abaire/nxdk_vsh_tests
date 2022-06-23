@@ -3,11 +3,38 @@
 
 #include <chrono>
 #include <fstream>
+#include <limits>
 #include <map>
 #include <string>
 #include <vector>
 
+#include "math3d.h"
+
 class TestHost;
+
+// Infinities
+static constexpr uint32_t kPosInfInt = 0x7F800000;
+static constexpr uint32_t kNegInfInt = 0xFF800000;
+
+// Quiet NaN on x86
+static constexpr uint32_t kPosNaNQInt = 0x7FC00000;
+static constexpr uint32_t kNegNaNQInt = 0xFFC00000;
+
+// Max normal
+static constexpr uint32_t kPosMaxInt = 0x7F7FFFFF;
+static constexpr uint32_t kNegMaxInt = 0xFF7FFFFF;
+
+// Min normal
+static constexpr uint32_t kPosMinInt = 0x00800000;
+static constexpr uint32_t kNegMinInt = 0x80800000;
+
+// Max subnormal
+static constexpr uint32_t kPosMaxSubnormalInt = 0x007FFFFF;
+static constexpr uint32_t kNegMaxSubnormalInt = 0x807FFFFF;
+
+// Min subnormal
+static constexpr uint32_t kPosMinSubnormalInt = 0x00000001;
+static constexpr uint32_t kNegMinSubnormalInt = 0x80000001;
 
 class TestSuite {
  public:
@@ -16,7 +43,7 @@ class TestSuite {
   const std::string &Name() const { return suite_name_; };
 
   virtual void Initialize();
-  virtual void Deinitialize() {};
+  virtual void Deinitialize(){};
 
   void DisableTests(const std::vector<std::string> &tests_to_skip);
 
@@ -27,9 +54,12 @@ class TestSuite {
 
   void SetSavingAllowed(bool enable = true) { allow_saving_ = enable; }
 
+  float RandomFloat();
+  void RandomVector(VECTOR out);
+
  protected:
   std::chrono::steady_clock::time_point LogTestStart(const std::string &test_name);
-  void LogTestEnd(const std::string &test_name, std::chrono::steady_clock::time_point start_time);
+  void LogTestEnd(const std::string &test_name, std::chrono::steady_clock::time_point start_time) const;
 
  protected:
   TestHost &host_;

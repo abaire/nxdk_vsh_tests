@@ -256,16 +256,16 @@ class TestHost {
 
   static void EnsureFolderExists(const std::string &folder_path);
 
- private:
-  std::shared_ptr<VertexShaderProgram> PrepareCalculation(const uint32_t *shader_code, uint32_t shader_size);
-
-  void SaveBackBuffer(const std::string &output_directory, const std::string &name);
-
   void Clear(uint32_t argb = 0xFF000000, uint32_t depth_value = 0xFFFFFFFF, uint8_t stencil_value = 0x00) const;
   void ClearDepthStencilRegion(uint32_t depth_value, uint8_t stencil_value, uint32_t left = 0, uint32_t top = 0,
                                uint32_t width = 0, uint32_t height = 0) const;
   void ClearColorRegion(uint32_t argb, uint32_t left = 0, uint32_t top = 0, uint32_t width = 0,
                         uint32_t height = 0) const;
+
+ private:
+  std::shared_ptr<VertexShaderProgram> PrepareCalculation(const uint32_t *shader_code, uint32_t shader_size);
+
+  void SaveBackBuffer(const std::string &output_directory, const std::string &name);
 
   // Sets up the number of enabled color combiners and behavior flags.
   //
