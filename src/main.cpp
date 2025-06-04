@@ -22,10 +22,12 @@
 #include "debug_output.h"
 #include "logger.h"
 #include "pbkit_sdl_gpu.h"
+#include "pushbuffer.h"
 #include "test_driver.h"
 #include "test_host.h"
 #include "tests/americasarmyshader.h"
 #include "tests/cpu_shader_tests.h"
+#include "tests/exceptional_float_tests.h"
 #include "tests/ilu_rcp_tests.h"
 #include "tests/mac_add_tests.h"
 #include "tests/mac_mov_tests.h"
@@ -121,14 +123,12 @@ int main() {
 
   TestHost::EnsureFolderExists(test_output_directory);
 
-#ifdef ENABLE_PROGRESS_LOG
   {
     std::string log_file = test_output_directory + "\\" + kLogFileName;
     DeleteFile(log_file.c_str());
 
     Logger::Initialize(log_file, true);
   }
-#endif
 
 #ifdef DUMP_CONFIG_FILE
   dump_config_file(test_output_directory + "\\config.cnf", test_suites);
@@ -137,6 +137,8 @@ int main() {
 #ifdef RUNTIME_CONFIG_PATH
   process_config(RUNTIME_CONFIG_PATH, test_suites);
 #endif
+
+  Pushbuffer::Initialize();
 
   TestDriver driver(host, test_suites, kFramebufferWidth, kFramebufferHeight);
   driver.Run();
@@ -284,36 +286,26 @@ static void process_config(const char* config_file_path, std::vector<std::shared
 
 static void register_suites(TestHost& host, std::vector<std::shared_ptr<TestSuite>>& test_suites,
                             const std::string& output_directory) {
-  {
-    auto suite = std::make_shared<CpuShaderTests>(host, output_directory);
-    test_suites.push_back(suite);
+
+#define REG_TEST(CLASS_NAME)                                                   \
+  {                                                                            \
+    auto suite = std::make_shared<CLASS_NAME>(host, output_directory); \
+    test_suites.push_back(suite);                                              \
   }
-  {
-    auto suite = std::make_shared<MACMovTests>(host, output_directory);
-    test_suites.push_back(suite);
-  }
-  {
-    auto suite = std::make_shared<MacAddTests>(host, output_directory);
-    test_suites.push_back(suite);
-  }
-  {
-    auto suite = std::make_shared<Americasarmyshader>(host, output_directory);
-    test_suites.push_back(suite);
-  }
-  {
-    auto suite = std::make_shared<IluRcpTests>(host, output_directory);
-    test_suites.push_back(suite);
-  }
-  {
-    auto suite = std::make_shared<PairedIluTests>(host, output_directory);
-    test_suites.push_back(suite);
-  }
-  {
-    auto suite = std::make_shared<VertexDataArrayFormatTests>(host, output_directory);
-    test_suites.push_back(suite);
-  }
-  {
-    auto suite = std::make_shared<Spyvsspymenu>(host, output_directory);
-    test_suites.push_back(suite);
-  }
+
+  // -- Begin REG_TEST --
+
+  REG_TEST(Americasarmyshader)
+  REG_TEST(CpuShaderTests)
+  REG_TEST(ExceptionalFloatTests)
+  REG_TEST(IluRcpTests)
+  REG_TEST(MACMovTests)
+  REG_TEST(MacAddTests)
+  REG_TEST(PairedIluTests)
+  REG_TEST(Spyvsspymenu)
+  REG_TEST(VertexDataArrayFormatTests)
+
+    // -- End REG_TEST --
+
+  #undef REG_TEST
 }

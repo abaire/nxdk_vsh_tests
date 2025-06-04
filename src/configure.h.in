@@ -1,8 +1,6 @@
 #ifndef NXDK_PGRAPH_TESTS_SRC_CONFIGURE_H_IN_H_
 #define NXDK_PGRAPH_TESTS_SRC_CONFIGURE_H_IN_H_
 
-#cmakedefine ENABLE_PROGRESS_LOG
-
 #cmakedefine DUMP_CONFIG_FILE
 
 #cmakedefine DISABLE_AUTORUN
@@ -21,11 +19,6 @@
 
 
 // Runtime config defaults.
-#ifdef ENABLE_PROGRESS_LOG
-#define DEFAULT_ENABLE_PROGRESS_LOG true
-#else
-#define DEFAULT_ENABLE_PROGRESS_LOG false
-#endif
 
 #ifdef DISABLE_AUTORUN
 #define DEFAULT_DISABLE_AUTORUN true

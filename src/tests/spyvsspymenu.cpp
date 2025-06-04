@@ -76,8 +76,8 @@ void Spyvsspymenu::Test() {
         {2, "R11\n   "},
         {3, "R0\n   "},
     };
-    results.emplace_back(buffer, RES_ALL, result_labels);
-    computations.push_back({kShader, sizeof(kShader), prepare, &results.back()});
+    results.emplace_back(buffer, RES_0 | RES_1 | RES_2 | RES_3, result_labels);
+    computations.push_back({kShader, sizeof(kShader), prepare, nullptr, &results.back()});
   }
 
   host_.ComputeWithVertexBuffer(computations);

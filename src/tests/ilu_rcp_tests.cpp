@@ -80,8 +80,8 @@ void IluRcpTests::Initialize() {
       shader->SetUniform4F(98, c);
       shader->SetUniform4F(99, d);
     };
-    results_.emplace_back(buffer, RES_ALL);
-    computations_.push_back({kShader, sizeof(kShader), prepare, &results_.back()});
+    results_.emplace_back(buffer, RES_0 | RES_1 | RES_2 | RES_3);
+    computations_.push_back({kShader, sizeof(kShader), prepare, nullptr, &results_.back()});
   }
 }
 

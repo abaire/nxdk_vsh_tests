@@ -49,7 +49,7 @@ void Americasarmyshader::Initialize() {
       shader->SetUniformF(147, 0.0, 0.0, 1.0, 0.0);
     };
     results_.emplace_back(buffer);
-    computations_.push_back({kShader, sizeof(kShader), prepare, &results_.back()});
+    computations_.push_back({kShader, sizeof(kShader), prepare, nullptr, &results_.back()});
   }
 }
 

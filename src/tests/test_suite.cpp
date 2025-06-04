@@ -57,11 +57,9 @@ void TestSuite::Initialize() { host_.ClearState(); }
 std::chrono::steady_clock::time_point TestSuite::LogTestStart(const std::string& test_name) {
   PrintMsg("Starting %s::%s\n", suite_name_.c_str(), test_name.c_str());
 
-#ifdef ENABLE_PROGRESS_LOG
   if (allow_saving_) {
     Logger::Log() << "Starting " << suite_name_ << "::" << test_name << std::endl;
   }
-#endif
 
   return std::chrono::high_resolution_clock::now();
 }
@@ -72,11 +70,9 @@ void TestSuite::LogTestEnd(const std::string& test_name, std::chrono::steady_clo
 
   PrintMsg("  Completed %s %lums\n", test_name.c_str(), elapsed);
 
-#ifdef ENABLE_PROGRESS_LOG
   if (allow_saving_) {
     Logger::Log() << "  Completed " << test_name << " " << elapsed << "ms" << std::endl;
   }
-#endif
 }
 
 float TestSuite::RandomFloat() {

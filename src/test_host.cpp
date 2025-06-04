@@ -14,9 +14,11 @@
 #include <utility>
 
 #include "debug_output.h"
+#include "logger.h"
 #include "nxdk_ext.h"
 #include "pbkit_ext.h"
 #include "pgraph_diff_token.h"
+#include "pushbuffer.h"
 #include "shaders/vertex_shader_program.h"
 #include "text_overlay.h"
 
@@ -173,6 +175,7 @@ TestHost::TestHost() {
     p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_OFFSET, VRAM_ADDR(vertex_buffer_));
     pb_end(p);
   }
+
 }
 
 TestHost::~TestHost() {
@@ -215,7 +218,7 @@ void TestHost::Clear(uint32_t argb, uint32_t depth_value, uint8_t stencil_value)
   TextOverlay::Reset();
 }
 
-static void __attribute__((optimize("O0"))) fetch_constant(float *buffer, uint32_t index) {
+static void fetch_constant(float *buffer, uint32_t index) {
   pb_wait_until_gr_not_busy();
 
   // See RDI dumping code in nv2a-trace.
@@ -229,65 +232,71 @@ static void __attribute__((optimize("O0"))) fetch_constant(float *buffer, uint32
   }
 }
 
+static void fetch_results(TestHost::Results &results) {
+  for (uint32_t i = 0; i < 32; ++i) {
+    if (results.results_mask & (1 << i)) {
+      GET_CONSTANT(results.cOut[i], kOutputConstantBaseIndex + i);
+    }
+  }
+}
+
 void TestHost::Compute(const std::list<Computation> &computations) {
   static constexpr float kPatchSize = 16.0f;
 
-  for (auto &test : computations) {
-    auto shader = PrepareCalculation(test.shader_code, test.shader_size);
-    test.prepare(shader);
+  for (auto &comp : computations) {
+    auto shader = PrepareCalculation(comp.shader_code, comp.shader_size);
+    if (comp.prepare) {
+      comp.prepare(shader);
+    }
     shader->PrepareDraw();
 
     while (pb_busy()) {
     }
 
-    float left = 0.0f;
-    float top = 0.0f;
+    if (comp.draw) {
+      comp.draw();
+    } else {
+      float left = 0.0f;
+      float top = 0.0f;
 
-    Begin(PRIMITIVE_QUADS);
-    SetVertex(left, 0.0, 0.0, 1.0);
-    SetVertex(left + kPatchSize, top, 0.0, 1.0);
-    SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
-    SetVertex(left, top + kPatchSize, 0.0, 1.0);
-    End();
+      Begin(PRIMITIVE_QUADS);
+      SetVertex(left, 0.0, 0.0, 1.0);
+      SetVertex(left + kPatchSize, top, 0.0, 1.0);
+      SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
+      SetVertex(left, top + kPatchSize, 0.0, 1.0);
+      End();
 
-    left += kPatchSize;
-    Begin(PRIMITIVE_QUADS);
-    SetVertex(left, 0.0, 0.0, 1.0);
-    SetVertex(left + kPatchSize, top, 0.0, 1.0);
-    SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
-    SetVertex(left, top + kPatchSize, 0.0, 1.0);
-    End();
+      left += kPatchSize;
+      Begin(PRIMITIVE_QUADS);
+      SetVertex(left, 0.0, 0.0, 1.0);
+      SetVertex(left + kPatchSize, top, 0.0, 1.0);
+      SetVertex(left + kPatchSize, top + kPatchSize, 0.0, 1.0);
+      SetVertex(left, top + kPatchSize, 0.0, 1.0);
+      End();
+    }
 
-    auto p = pb_begin();
     // Force inputs to be reloaded, may not be necessary for immediate mode commands.
-    p = pb_push1(p, NV097_BREAK_VERTEX_BUFFER_CACHE, 0);
-    p = pb_push1(p, NV097_NO_OPERATION, 0);
-    p = pb_push1(p, NV097_WAIT_FOR_IDLE, 0);
-    pb_end(p);
+    Pushbuffer::Begin();
+    Pushbuffer::Push(NV097_BREAK_VERTEX_BUFFER_CACHE, 0);
+    Pushbuffer::Push(NV097_NO_OPERATION, 0);
+    Pushbuffer::Push(NV097_WAIT_FOR_IDLE, 0);
+    Pushbuffer::End();
 
     while (pb_busy()) {
     }
 
-    if (test.results->results_mask & RES_0) {
-      GET_CONSTANT(test.results->c188, 188);
-    }
-    if (test.results->results_mask & RES_1) {
-      GET_CONSTANT(test.results->c189, 189);
-    }
-    if (test.results->results_mask & RES_2) {
-      GET_CONSTANT(test.results->c190, 190);
-    }
-    if (test.results->results_mask & RES_3) {
-      GET_CONSTANT(test.results->c191, 191);
-    }
+    fetch_results(*comp.results);
   }
 }
 
 void TestHost::ComputeWithVertexBuffer(const std::list<Computation> &computations) {
   for (auto &comp : computations) {
+    assert(!comp.draw && "ComputeWithVertexBuffer must not be called with a draw override.");
     PrintMsg("Prepare calc in ComputeWithVertexBuffer\n");
     auto shader = PrepareCalculation(comp.shader_code, comp.shader_size);
-    comp.prepare(shader);
+    if (comp.prepare) {
+      comp.prepare(shader);
+    }
     shader->PrepareDraw();
 
     while (pb_busy()) {
@@ -310,18 +319,7 @@ void TestHost::ComputeWithVertexBuffer(const std::list<Computation> &computation
     while (pb_busy()) {
     }
 
-    if (comp.results->results_mask & RES_0) {
-      GET_CONSTANT(comp.results->c188, 188);
-    }
-    if (comp.results->results_mask & RES_1) {
-      GET_CONSTANT(comp.results->c189, 189);
-    }
-    if (comp.results->results_mask & RES_2) {
-      GET_CONSTANT(comp.results->c190, 190);
-    }
-    if (comp.results->results_mask & RES_3) {
-      GET_CONSTANT(comp.results->c191, 191);
-    }
+    fetch_results(*comp.results);
   }
 }
 
@@ -335,6 +333,7 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
   auto shader = vertex_shader_program_;
 
   TextOverlay::Print("%s\n", name.c_str());
+  Logger::Log() << "Starting " << name << std::endl;
 
   auto print_vals = [](uint32_t index, const VECTOR vals, const std::map<uint32_t, std::string> &labels) {
     // pbkit's handling of exceptional floats is not trustable.
@@ -346,21 +345,16 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
       snprintf_(buf, sizeof(buf), " %s%f,%f,%f,%f\n", label->second.c_str(), vals[0], vals[1], vals[2], vals[3]);
     }
     TextOverlay::Print("%s", buf);
+    Logger::Log() << buf << std::endl;
   };
 
   for (auto &result : results) {
     TextOverlay::Print("%s:\n", result.title.c_str());
-    if (result.results_mask & RES_0) {
-      print_vals(0, result.c188, result.result_labels);
-    }
-    if (result.results_mask & RES_1) {
-      print_vals(1, result.c189, result.result_labels);
-    }
-    if (result.results_mask & RES_2) {
-      print_vals(2, result.c190, result.result_labels);
-    }
-    if (result.results_mask & RES_3) {
-      print_vals(3, result.c191, result.result_labels);
+    Logger::Log() << result.title << std::endl;
+    for (uint32_t i = 0; i < 32; ++i) {
+      if (result.results_mask & (1 << i)) {
+        print_vals(i, result.cOut[i], result.result_labels);
+      }
     }
   }
 
