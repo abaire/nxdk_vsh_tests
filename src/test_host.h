@@ -35,22 +35,23 @@ constexpr uint32_t kNoStrideOverride = 0xFFFFFFFF;
 #define VRAM_ADDR(x) (reinterpret_cast<uint32_t>(x) & 0x03FFFFFF)
 #define SET_MASK(mask, val) (((val) << (__builtin_ffs(mask) - 1)) & (mask))
 
+//! The index of the first result in the vsh constants array.
+constexpr uint32_t kOutputConstantBaseIndex = 188;
+
 // Defines which fields in a TestHost::Results should be displayed.
 constexpr uint32_t RES_0 = 1 << 0;
 constexpr uint32_t RES_1 = 1 << 1;
 constexpr uint32_t RES_2 = 1 << 2;
 constexpr uint32_t RES_3 = 1 << 3;
-constexpr uint32_t RES_ALL = RES_0 | RES_1 | RES_2 | RES_3;
+constexpr uint32_t RES_4 = 1 << 4;
+constexpr uint32_t RES_ALL = 0xFFFFFFFF;
 
 class TestHost {
  public:
   struct Results {
     std::string title;
     uint32_t results_mask;
-    VECTOR c188{0.0f, 0.0f, 0.0f, 0.0f};
-    VECTOR c189{0.0f, 0.0f, 0.0f, 0.0f};
-    VECTOR c190{0.0f, 0.0f, 0.0f, 0.0f};
-    VECTOR c191{0.0f, 0.0f, 0.0f, 0.0f};
+    VECTOR cOut[32]{{0.0f}};
 
     std::map<uint32_t, std::string> result_labels;
 
@@ -64,6 +65,7 @@ class TestHost {
     uint32_t shader_size{0};
 
     std::function<void(const std::shared_ptr<VertexShaderProgram> &)> prepare;
+    std::function<void()> draw;
 
     Results *results;
   };
@@ -196,16 +198,18 @@ class TestHost {
 
   static void NullPrepare(const std::shared_ptr<VertexShaderProgram> &){};
 
+  //! Executes computation by rendering a pair of quads.
   void Compute(const std::list<Computation> &computations);
-  void DrawResults(const std::list<Results> &results, bool allow_saving, const std::string &output_directory,
-                   const std::string &name);
 
   // Run a computation whose inputs have already been specified via NV097_SET_VERTEX_DATA_ARRAY_FORMAT. The vertices
   // are assumed to be a single quad in clockwise order (indices 0, 1, 2, 3 will be used).
   void ComputeWithVertexBuffer(const std::list<Computation> &computations);
 
+  void DrawResults(const std::list<Results> &results, bool allow_saving, const std::string &output_directory,
+                   const std::string &name);
+
   void SetVertexShaderProgram(std::shared_ptr<VertexShaderProgram> program);
-  std::shared_ptr<VertexShaderProgram> GetShaderProgram() const { return vertex_shader_program_; }
+  [[nodiscard]] std::shared_ptr<VertexShaderProgram> GetShaderProgram() const { return vertex_shader_program_; }
 
   // Clear all vertex shaders registers to known values.
   void ClearState();

@@ -25,6 +25,7 @@ generate_nv2a_vshinc_files(
         shaders/americas_army_shader.vsh
         shaders/clear_state.vsh
         shaders/compute_footer.vsh
+        shaders/exceptional_float_passthrough.vsh
         shaders/ilu_exp_passthrough.vsh
         shaders/ilu_lit_passthrough.vsh
         shaders/ilu_log_passthrough.vsh
@@ -70,6 +71,8 @@ add_library(
         pbkit_ext.h
         pgraph_diff_token.cpp
         pgraph_diff_token.h
+        pushbuffer.cpp
+        pushbuffer.h
         test_driver.cpp
         test_driver.h
         test_host.cpp
@@ -118,6 +121,8 @@ add_executable(
         tests/americasarmyshader.h
         tests/cpu_shader_tests.cpp
         tests/cpu_shader_tests.h
+        tests/exceptional_float_tests.cpp
+        tests/exceptional_float_tests.h
         tests/ilu_rcp_tests.cpp
         tests/ilu_rcp_tests.h
         tests/mac_add_tests.cpp

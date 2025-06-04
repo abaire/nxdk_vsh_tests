@@ -282,7 +282,7 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
       };
 
       results.emplace_back("result");
-      computations.push_back({shader, shader_size, prepare, &results.back()});
+      computations.push_back({shader, shader_size, prepare, nullptr, &results.back()});
       ++j;
     }
 
@@ -293,7 +293,7 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
   int j = 0;
   for (auto &result : results) {
     ++*num_tests;
-    const float *hw_result = result.c188;
+    const float *hw_result = result.cOut[0];
     const std::vector<float> &op_inputs = *input_it++;
 
 #ifdef LOG_VERBOSE

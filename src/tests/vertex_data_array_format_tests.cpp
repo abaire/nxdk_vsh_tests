@@ -46,9 +46,9 @@ void VertexDataArrayFormatTests::TestF() {
   // Quiet NaN on x86
   static constexpr uint32_t posNanQ = 0x7FC00000;
   static constexpr uint32_t negNanQ = 0xFFC00000;
-  // Signalling NaN on x86
-  static constexpr uint32_t posNanS = 0x7F800001;
-  static constexpr uint32_t negNanS = 0xFF800001;
+//  // Signalling NaN on x86
+//  static constexpr uint32_t posNanS = 0x7F800001;
+//  static constexpr uint32_t negNanS = 0xFF800001;
   // Max normal
   static constexpr uint32_t posMax = 0x7F7FFFFF;
   static constexpr uint32_t negMax = 0xFF7FFFFF;
@@ -84,7 +84,7 @@ void VertexDataArrayFormatTests::TestF() {
       GenerateFloat(attribute_buffer_, test[0], test[1], test[2], test[3]);
     };
     results.emplace_back(buffer);
-    computations.push_back({kShader, sizeof(kShader), prepare, &results.back()});
+    computations.push_back({kShader, sizeof(kShader), prepare, nullptr, &results.back()});
   }
 
   struct ExceptionalTest {
@@ -103,7 +103,7 @@ void VertexDataArrayFormatTests::TestF() {
       GenerateDWORD(attribute_buffer_, test.values[0], test.values[1], test.values[2], test.values[3]);
     };
     results.emplace_back(test.name);
-    computations.push_back({kShader, sizeof(kShader), prepare, &results.back()});
+    computations.push_back({kShader, sizeof(kShader), prepare, nullptr, &results.back()});
   }
 
   host_.ComputeWithVertexBuffer(computations);
@@ -134,7 +134,7 @@ void VertexDataArrayFormatTests::TestS1() {
       GenerateShort(attribute_buffer_, test[0], test[1], test[2], test[3]);
     };
     results.emplace_back(buffer);
-    computations.push_back({kShader, sizeof(kShader), prepare, &results.back()});
+    computations.push_back({kShader, sizeof(kShader), prepare, nullptr, &results.back()});
   }
 
   host_.ComputeWithVertexBuffer(computations);
@@ -165,7 +165,7 @@ void VertexDataArrayFormatTests::TestS32K() {
       GenerateShort(attribute_buffer_, test[0], test[1], test[2], test[3]);
     };
     results.emplace_back(buffer);
-    computations.push_back({kShader, sizeof(kShader), prepare, &results.back()});
+    computations.push_back({kShader, sizeof(kShader), prepare, nullptr, &results.back()});
   }
 
   host_.ComputeWithVertexBuffer(computations);

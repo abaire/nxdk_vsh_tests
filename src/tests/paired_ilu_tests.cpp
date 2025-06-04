@@ -39,7 +39,7 @@ void PairedIluTests::Initialize() {
         {3, "R10 (R10.x = RSQ)\n   "},
     };
     results_.emplace_back(buffer, RES_ALL, result_labels);
-    computations_.push_back({kShader, sizeof(kShader), prepare, &results_.back()});
+    computations_.push_back({kShader, sizeof(kShader), prepare, nullptr, &results_.back()});
   }
 }
 

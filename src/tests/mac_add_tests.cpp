@@ -37,7 +37,7 @@ void MacAddTests::Initialize() {
       shader->SetUniform4F(97, b);
     };
     results_.emplace_back(buffer);
-    computations_.push_back({kShader, sizeof(kShader), prepare, &results_.back()});
+    computations_.push_back({kShader, sizeof(kShader), prepare, nullptr, &results_.back()});
   }
 }
 
