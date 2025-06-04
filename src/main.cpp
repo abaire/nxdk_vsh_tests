@@ -21,7 +21,7 @@
 #include "SDL_test_fuzzer.h"
 #include "debug_output.h"
 #include "logger.h"
-#include "pbkit-sdl-gpu/pbkit_sdl_gpu.h"
+#include "pbkit_sdl_gpu.h"
 #include "test_driver.h"
 #include "test_host.h"
 #include "tests/americasarmyshader.h"
@@ -51,8 +51,11 @@ static void dump_config_file(const std::string& config_file_path,
                              const std::vector<std::shared_ptr<TestSuite>>& test_suites);
 static void process_config(const char* config_file_path, std::vector<std::shared_ptr<TestSuite>>& test_suites);
 
+extern "C" __cdecl int automount_d_drive(void);
+
 /* Main program function */
 int main() {
+  automount_d_drive();
   XVideoSetMode(kFramebufferWidth, kFramebufferHeight, 32, REFRESH_DEFAULT);
 
   PBKitSDLGPUInit();

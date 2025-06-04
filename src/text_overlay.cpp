@@ -1,7 +1,7 @@
 #include "text_overlay.h"
 
 #include "debug_output.h"
-#include "pbkit-sdl-gpu/precalculated_vertex_shader.h"
+#include "precalculated_vertex_shader.h"
 #include "pbkit/pbkit.h"
 
 TextOverlay *TextOverlay::singleton_ = nullptr;

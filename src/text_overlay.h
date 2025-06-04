@@ -5,7 +5,8 @@
 #include <string>
 #include <utility>
 
-#include "SDL_FontCache/SDL_FontCache.h"
+#include "SDL_gpu.h"
+#include "SDL_FontCache.h"
 #include "printf/printf.h"
 
 class TextOverlay {
@@ -63,7 +64,7 @@ class TextOverlay {
   uint32_t font_size_;
   FC_Font *font_;
 
-  FC_Rect cell_size_;
+  FC_Rect cell_size_{0};
 
   float overlay_x_;
   float overlay_y_;
