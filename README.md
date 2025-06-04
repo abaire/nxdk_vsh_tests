@@ -61,8 +61,9 @@ To facilitate this, the nxdk is included as a submodule of this project, referen
 This project should be cloned with the `--recursive` flag to pull the submodules and their submodules,
 after the fact this can be achieved via `git submodule update --init --recursive`.
 
-For macOS, the patched nxdk currently assumes that the Homebrew llvm@11 package has been installed.
-
+As of June 2025, the nxdk's CMake implementation requires bootstrapping before it may be used. To facilitate this, run
+the `prewarm-nxdk.sh` script from this project's root directory. It will navigate into the `nxdk` subdir and build all
+the sample projects, triggering the creation of the `nxdk` libraries needed for the toolchain and for this project.
 
 ## Running with CLion
 

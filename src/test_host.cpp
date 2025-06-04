@@ -48,13 +48,6 @@ static const uint32_t kComputeFooter[] = {
 #define GET_CONSTANT(var, idx) fetch_constant(var, idx)
 #endif
 
-// From pbkit.c, DMA_A is set to channel 3 by default
-// NV097_SET_CONTEXT_DMA_A == NV20_TCL_PRIMITIVE_3D_SET_OBJECT1
-static constexpr uint32_t kDefaultDMAChannelA = 3;
-// From pbkit.c, DMA_COLOR is set to channel 9 by default.
-// NV097_SET_CONTEXT_DMA_COLOR == NV20_TCL_PRIMITIVE_3D_SET_OBJECT3
-static constexpr uint32_t kDefaultDMAColorChannel = 9;
-
 static void SetSurfaceFormat() {
   uint32_t value = SET_MASK(NV097_SET_SURFACE_FORMAT_COLOR, NV097_SET_SURFACE_FORMAT_COLOR_LE_A8R8G8B8) |
                    SET_MASK(NV097_SET_SURFACE_FORMAT_ZETA, NV097_SET_SURFACE_FORMAT_ZETA_Z24S8) |
@@ -201,7 +194,7 @@ void TestHost::ClearDepthStencilRegion(uint32_t depth_value, uint8_t stencil_val
     height = kFramebufferHeight;
   }
 
-  set_depth_stencil_buffer_region(NV097_SET_SURFACE_FORMAT_ZETA_Z24S8, depth_value, stencil_value, left, top, width,
+  pb_set_depth_stencil_buffer_region(NV097_SET_SURFACE_FORMAT_ZETA_Z24S8, depth_value, stencil_value, left, top, width,
                                   height);
 }
 
