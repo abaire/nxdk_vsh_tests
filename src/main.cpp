@@ -63,7 +63,7 @@ int main() {
   PBKitSDLGPUInit();
   GPU_Target* gpu_target = nullptr;
   {
-    SDL_Window* window = SDL_CreateWindow("NevolutionX", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+    SDL_Window* window = SDL_CreateWindow("nxdk_vsh_tests", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                           kFramebufferWidth, kFramebufferHeight, SDL_WINDOW_SHOWN);
     GPU_SetInitWindow(SDL_GetWindowID(window));
     gpu_target = GPU_Init(kFramebufferWidth, kFramebufferHeight, GPU_DEFAULT_INIT_FLAGS);

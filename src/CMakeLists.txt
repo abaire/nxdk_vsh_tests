@@ -170,7 +170,7 @@ target_link_libraries(
 
 add_xbe(
         xbe_file "${EXECUTABLE_BINARY}"
-        TITLE "PGRAPH Tests"
+        TITLE "VSH Tests"
         RESOURCE_ROOTS
         "${CMAKE_SOURCE_DIR}/resources"
         RESOURCE_DIRS
