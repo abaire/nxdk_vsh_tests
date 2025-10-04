@@ -11,9 +11,9 @@
 #include <utility>
 #include <vector>
 
-#include "math3d.h"
 #include "nxdk_ext.h"
 #include "string"
+#include "xbox_math_matrix.h"
 
 class VertexShaderProgram;
 
@@ -51,7 +51,7 @@ class TestHost {
   struct Results {
     std::string title;
     uint32_t results_mask;
-    VECTOR cOut[32]{{0.0f}};
+    XboxMath::vector_t cOut[32]{{0.0f}};
 
     std::map<uint32_t, std::string> result_labels;
 
@@ -224,7 +224,7 @@ class TestHost {
   // Trigger creation of a vertex, applying the last set attributes.
   void SetVertex(float x, float y, float z, float w) const;
   // Trigger creation of a vertex, applying the last set attributes.
-  inline void SetVertex(const VECTOR pt) const { SetVertex(pt[_X], pt[_Y], pt[_Z], pt[_W]); }
+  inline void SetVertex(const XboxMath::vector_t pt) const { SetVertex(pt[0], pt[1], pt[2], pt[3]); }
 
   void SetWeight(float w) const;
   void SetWeight(float w1, float w2, float w3, float w4) const;

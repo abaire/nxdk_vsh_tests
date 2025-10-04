@@ -333,7 +333,8 @@ void TestHost::DrawResults(const std::list<Results> &results, bool allow_saving,
 
   TextOverlay::Print("%s\n", name.c_str());
 
-  auto print_vals = [](uint32_t index, const VECTOR vals, const std::map<uint32_t, std::string> &labels) {
+  auto print_vals = [](uint32_t index, const XboxMath::vector_t vals,
+                       const std::map<uint32_t, std::string> &labels) {
     // pbkit's handling of exceptional floats is not trustable.
     char buf[128] = {0};
     auto label = labels.find(index);

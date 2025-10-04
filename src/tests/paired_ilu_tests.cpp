@@ -29,7 +29,7 @@ void PairedIluTests::Initialize() {
   char buffer[128] = {0};
 
   {
-    VECTOR a = {25.0f, 1.123f, 2.123f, 3.123f};
+    XboxMath::vector_t a = {25.0f, 1.123f, 2.123f, 3.123f};
     snprintf(buffer, sizeof(buffer), "%f,%f,%f,%f", a[0], a[1], a[2], a[3]);
     auto prepare = [a](const std::shared_ptr<VertexShaderProgram> &shader) { shader->SetUniform4F(96, a); };
     auto result_labels = std::map<uint32_t, std::string>{

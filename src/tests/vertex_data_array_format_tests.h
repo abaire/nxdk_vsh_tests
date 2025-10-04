@@ -13,7 +13,7 @@ class VertexDataArrayFormatTests : public TestSuite {
     uint32_t format;
     uint32_t count;
     uint32_t stride;
-    std::function<void(void *, const VECTOR)> generator;
+    std::function<void(void *, const XboxMath::vector_t)> generator;
   };
 
  public:

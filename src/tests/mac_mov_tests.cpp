@@ -29,7 +29,7 @@ void MACMovTests::Initialize() {
   char buffer[128] = {0};
 
   {
-    VECTOR a = {1.0f, 2.0f, -3.0f, -4.12345f};
+    XboxMath::vector_t a = {1.0f, 2.0f, -3.0f, -4.12345f};
     snprintf(buffer, sizeof(buffer), "%f,%f,%f,%f", a[0], a[1], a[2], a[3]);
     auto prepare = [a](const std::shared_ptr<VertexShaderProgram> &shader) {
       shader->SetUniform4F(96, a);

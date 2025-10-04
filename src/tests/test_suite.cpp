@@ -84,7 +84,7 @@ float TestSuite::RandomFloat() {
   return *(float*)&val;
 }
 
-void TestSuite::RandomVector(VECTOR out) {
+void TestSuite::RandomVector(XboxMath::vector_t out) {
   out[0] = RandomFloat();
   out[1] = RandomFloat();
   out[2] = RandomFloat();

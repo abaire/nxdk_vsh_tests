@@ -306,7 +306,7 @@ static bool TestBatch(TestHost &host, const char *name, uint32_t num_inputs, con
     }
 #endif
 
-    VECTOR cpu_result;
+    XboxMath::vector_t cpu_result;
     cpu_op(cpu_result, op_inputs.data());
     if (!almost_equal(cpu_result, hw_result, low_precision ? kUnitsInLastPlaceLowPrecision : kUnitsInLastPlace)) {
       pb_reset();

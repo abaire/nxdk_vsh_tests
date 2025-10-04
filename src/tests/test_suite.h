@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "math3d.h"
+#include "xbox_math_matrix.h"
 
 class TestHost;
 
@@ -55,7 +55,7 @@ class TestSuite {
   void SetSavingAllowed(bool enable = true) { allow_saving_ = enable; }
 
   float RandomFloat();
-  void RandomVector(VECTOR out);
+  void RandomVector(XboxMath::vector_t out);
 
  protected:
   std::chrono::steady_clock::time_point LogTestStart(const std::string &test_name);

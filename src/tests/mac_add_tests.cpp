@@ -29,8 +29,8 @@ void MacAddTests::Initialize() {
   char buffer[128] = {0};
 
   {
-    VECTOR a = {1.0f, 2.0f, -1.0f, -2.33f};
-    VECTOR b = {1000.5f, 2424.99f, 1.0f, -100.0f};
+    XboxMath::vector_t a = {1.0f, 2.0f, -1.0f, -2.33f};
+    XboxMath::vector_t b = {1000.5f, 2424.99f, 1.0f, -100.0f};
     snprintf(buffer, sizeof(buffer), "%f,%f,%f,%f +\n%f,%f,%f,%f", a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3]);
     auto prepare = [a, b](const std::shared_ptr<VertexShaderProgram> &shader) {
       shader->SetUniform4F(96, a);
