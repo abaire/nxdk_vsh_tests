@@ -53,20 +53,20 @@ void IluRcpTests::Initialize() {
   char buffer[128] = {0};
 
   {
-    VECTOR a = {1.0f, 2.123f, 0.0f, 0.0f};
+    XboxMath::vector_t a = {1.0f, 2.123f, 0.0f, 0.0f};
     a[2] = *(float *)&kPosMin;
     a[3] = *(float *)&kPosMax;
 
-    VECTOR b = {-1.0f, -2.123f, 0.0f, 0.0f};
+    XboxMath::vector_t b = {-1.0f, -2.123f, 0.0f, 0.0f};
     b[2] = *(float *)&kNegMin;
     b[3] = *(float *)&kNegMax;
 
-    VECTOR c = {0.0f, 0.0f, 0.0f, 0.0f};
+    XboxMath::vector_t c = {0.0f, 0.0f, 0.0f, 0.0f};
     c[1] = *(float *)&kPosInf;
     c[2] = *(float *)&kNegInf;
     c[3] = *(float *)&kPosNaNQ;
 
-    VECTOR d = {0.0f, 0.0f, 0.0f, 0.0f};
+    XboxMath::vector_t d = {0.0f, 0.0f, 0.0f, 0.0f};
     d[0] = *(float *)&kNegNaNQ;
     d[1] = *(float *)&kNegMaxSubnormal;
     d[2] = *(float *)&kPosMinSubnormal;

@@ -18,6 +18,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nxdkftplib)
 
+FetchContent_Declare(
+        xbox_math3d
+        GIT_REPOSITORY https://github.com/abaire/xbox_math3d.git
+        GIT_TAG ec4256026136c89d530ee1cd8fc0e45ea7786ced
+)
+FetchContent_MakeAvailable(xbox_math3d)
+
 # Vertex shaders.
 generate_nv2a_vshinc_files(
         generated_nv2a_vertex_shaders
@@ -61,8 +68,6 @@ add_library(
         debug_output.h
         logger.cpp
         logger.h
-        math3d.c
-        math3d.h
         main.cpp
         menu_item.cpp
         menu_item.h
@@ -101,6 +106,7 @@ target_link_libraries(
         optimized_sources
         PUBLIC
         generated_nv2a_vertex_shaders
+        xbox_math3d
         PRIVATE
         fpng
         nv2a_vsh_cpu
